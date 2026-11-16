@@ -1,0 +1,876 @@
+import 'dotenv/config';
+import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import Parser from 'rss-parser';
+import { GoogleGenAI, Type } from '@google/genai';
+import { BASELINE_INTELLIGENCE } from './src/data/baselineIntelligence.ts';
+import type {
+  ExecutiveBriefing,
+  IntelligenceItem,
+  NewsSourceEndpoint,
+  Region,
+  Sector,
+  EventType,
+  Sentiment,
+} from './src/types/intelligence.ts';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const PORT = Number(process.env.PORT || 3000);
+const GEMINI_MODEL = 'gemini-2.5-flash';
+const GNEWS_API_KEY = process.env.GNEWS_API_KEY || 'c3049c9303733daed020e32a21c9a77e';
+
+const ai = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      httpOptions: {
+        apiVersion: 'v1beta',
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    })
+  : null;
+
+const rssParser = new Parser({
+  timeout: 4500,
+  headers: {
+    'User-Agent': 'MeridianIntel/1.0 (+Executive Intelligence Aggregator)',
+  },
+});
+
+const BASE_RSS_SOURCES: NewsSourceEndpoint[] = [
+  // North America (Local US & Canada)
+  {
+    id: 'us-banking-dive',
+    name: 'Banking Dive (US)',
+    region: 'North America',
+    scope: 'Local',
+    url: 'https://www.bankingdive.com/feeds/news/',
+    defaultSector: 'Banking',
+  },
+  {
+    id: 'ca-betakit',
+    name: 'BetaKit (Canada)',
+    region: 'North America',
+    scope: 'Local',
+    url: 'https://betakit.com/feed/',
+    defaultSector: 'AI',
+  },
+  {
+    id: 'us-tc-fintech',
+    name: 'TechCrunch FinTech',
+    region: 'North America',
+    scope: 'Regional',
+    url: 'https://techcrunch.com/category/fintech/feed/',
+    defaultSector: 'FinTech',
+  },
+  {
+    id: 'us-tc-ai',
+    name: 'TechCrunch AI',
+    region: 'North America',
+    scope: 'Global',
+    url: 'https://techcrunch.com/category/artificial-intelligence/feed/',
+    defaultSector: 'AI',
+  },
+  {
+    id: 'us-gnews-local',
+    name: 'US Banking & AI Wire',
+    region: 'North America',
+    scope: 'Local',
+    url: 'https://news.google.com/rss/search?q=fintech+OR+banking+AI+US&hl=en-US&gl=US&ceid=US:en',
+    defaultSector: 'Banking',
+  },
+  // Europe
+  {
+    id: 'eu-sifted',
+    name: 'Sifted (Europe)',
+    region: 'Europe',
+    scope: 'Regional',
+    url: 'https://sifted.eu/feed/',
+    defaultSector: 'FinTech',
+  },
+  {
+    id: 'eu-gnews-local',
+    name: 'UK & EU Banking Wire',
+    region: 'Europe',
+    scope: 'Local',
+    url: 'https://news.google.com/rss/search?q=fintech+OR+banking+AI+London+OR+Frankfurt+OR+Paris&hl=en-GB&gl=GB&ceid=GB:en',
+    defaultSector: 'Banking',
+  },
+  // Asia-Pacific
+  {
+    id: 'apac-fintech-sg',
+    name: 'Fintech News Singapore',
+    region: 'Asia-Pacific',
+    scope: 'Local',
+    url: 'https://fintechnews.sg/feed/',
+    defaultSector: 'FinTech',
+  },
+  {
+    id: 'apac-gnews',
+    name: 'APAC Finance & AI Wire',
+    region: 'Asia-Pacific',
+    scope: 'Regional',
+    url: 'https://news.google.com/rss/search?q=fintech+OR+banking+AI+Singapore+OR+Tokyo+OR+India&hl=en-AU&gl=AU&ceid=AU:en',
+    defaultSector: 'AI',
+  },
+  // Oceania
+  {
+    id: 'oceania-startup-daily',
+    name: 'Startup Daily (Australia/NZ)',
+    region: 'Oceania',
+    scope: 'Local',
+    url: 'https://www.startupdaily.net/feed/',
+    defaultSector: 'AI',
+  },
+  // Middle East
+  {
+    id: 'mena-fintech-ae',
+    name: 'Fintech News Middle East',
+    region: 'Middle East',
+    scope: 'Local',
+    url: 'https://fintechnews.ae/feed/',
+    defaultSector: 'FinTech',
+  },
+  {
+    id: 'mena-gnews',
+    name: 'MENA Banking & AI Wire',
+    region: 'Middle East',
+    scope: 'Regional',
+    url: 'https://news.google.com/rss/search?q=fintech+OR+banking+AI+Dubai+OR+Riyadh&hl=en-US&gl=US&ceid=US:en',
+    defaultSector: 'Banking',
+  },
+  // Latin America
+  {
+    id: 'latam-list',
+    name: 'LatamList',
+    region: 'Latin America',
+    scope: 'Regional',
+    url: 'https://latamlist.com/feed/',
+    defaultSector: 'FinTech',
+  },
+  {
+    id: 'latam-gnews',
+    name: 'LatAm FinTech & Banking Wire',
+    region: 'Latin America',
+    scope: 'Local',
+    url: 'https://news.google.com/rss/search?q=fintech+OR+banking+AI+Brazil+OR+Mexico+OR+Colombia&hl=en-US&gl=US&ceid=US:en',
+    defaultSector: 'FinTech',
+  },
+  // Africa
+  {
+    id: 'africa-techcabal',
+    name: 'TechCabal (West Africa)',
+    region: 'Africa',
+    scope: 'Local',
+    url: 'https://techcabal.com/feed/',
+    defaultSector: 'FinTech',
+  },
+  {
+    id: 'africa-disrupt',
+    name: 'Disrupt Africa',
+    region: 'Africa',
+    scope: 'Regional',
+    url: 'https://disrupt-africa.com/feed/',
+    defaultSector: 'FinTech',
+  },
+  {
+    id: 'africa-gnews',
+    name: 'Africa Banking & AI Wire',
+    region: 'Africa',
+    scope: 'Local',
+    url: 'https://news.google.com/rss/search?q=fintech+OR+banking+AI+Africa+OR+Nigeria+OR+Kenya&hl=en-US&gl=US&ceid=US:en',
+    defaultSector: 'Banking',
+  },
+  // Dedicated Ghana FinTech, Banking & Technology Endpoints
+  {
+    id: 'gh-business-wire',
+    name: 'Ghana Business & Financial Times (B&FT)',
+    region: 'Africa',
+    scope: 'Local',
+    url: 'https://news.google.com/rss/search?q=site:thebftonline.com+(banking+OR+fintech+OR+AI+OR+economy+OR+investment)&hl=en-GH&gl=GH&ceid=GH:en',
+    defaultSector: 'Banking',
+  },
+  {
+    id: 'gh-citi-business',
+    name: 'Citi Business News (Ghana)',
+    region: 'Africa',
+    scope: 'Local',
+    url: 'https://news.google.com/rss/search?q=site:citinewsroom.com+(banking+OR+fintech+OR+AI+OR+business)&hl=en-GH&gl=GH&ceid=GH:en',
+    defaultSector: 'FinTech',
+  },
+  {
+    id: 'gh-joy-business-tech',
+    name: 'MyJoyOnline Business & Tech (Ghana)',
+    region: 'Africa',
+    scope: 'Local',
+    url: 'https://news.google.com/rss/search?q=site:myjoyonline.com+(business+OR+technology+OR+banking+OR+fintech)&hl=en-GH&gl=GH&ceid=GH:en',
+    defaultSector: 'AI',
+  },
+  {
+    id: 'gh-fintech-bog',
+    name: 'Ghana FinTech & Bank of Ghana Wire',
+    region: 'Africa',
+    scope: 'Local',
+    url: 'https://news.google.com/rss/search?q=Ghana+(%22Bank+of+Ghana%22+OR+fintech+OR+Telecel+OR+%22MTN+MoMo%22+OR+%22eCedi%22+OR+%22mobile+money%22)&hl=en-GH&gl=GH&ceid=GH:en',
+    defaultSector: 'FinTech',
+  },
+];
+
+let rssSources: NewsSourceEndpoint[] = BASE_RSS_SOURCES.map((source) => ({
+  ...source,
+  enabled: true,
+  custom: false,
+}));
+
+// In-memory intelligence store (initialized with verified baseline, enriched by live RSS + Gemini)
+let intelligenceStore: IntelligenceItem[] = [...BASELINE_INTELLIGENCE];
+let lastIngestedAt = new Date().toISOString();
+let liveFeedCount = 0;
+let activeRssFeedCount = 0;
+
+interface RawRssArticle {
+  headline: string;
+  source: string;
+  url: string;
+  publishedAt: string;
+  snippet: string;
+  defaultSector: Sector;
+  sourceRegion: Region;
+}
+
+function normalizeHeadline(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 64);
+}
+
+async function fetchGNewsGhanaArticles(): Promise<RawRssArticle[]> {
+  if (!GNEWS_API_KEY) return [];
+
+  const queries = [
+    'Ghana (fintech OR banking OR AI OR business)',
+    'Ghana ("Bank of Ghana" OR "mobile money" OR "e-cedi" OR startup)',
+  ];
+
+  const results: RawRssArticle[] = [];
+  const seenUrls = new Set<string>();
+  const seenTitles = new Set<string>();
+
+  for (const query of queries) {
+    try {
+      const endpoint = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&max=10&apikey=${GNEWS_API_KEY}`;
+      const response = await fetch(endpoint, {
+        headers: { 'User-Agent': 'MeridianIntel/1.0 (+Executive Aggregator)' },
+        signal: AbortSignal.timeout(6000),
+      });
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const data = (await response.json()) as {
+        articles?: Array<{
+          title: string;
+          description?: string;
+          content?: string;
+          url: string;
+          publishedAt: string;
+          source?: { name: string; url?: string };
+        }>;
+      };
+
+      for (const article of data.articles || []) {
+        if (!article.title || !article.url) continue;
+        const normUrl = article.url.trim().toLowerCase();
+        const normTitle = normalizeHeadline(article.title);
+        if (seenUrls.has(normUrl) || seenTitles.has(normTitle)) continue;
+        seenUrls.add(normUrl);
+        seenTitles.add(normTitle);
+
+        results.push({
+          headline: article.title.trim(),
+          source: article.source?.name ? `GNews / ${article.source.name}` : 'GNews Ghana',
+          url: article.url.trim(),
+          publishedAt: article.publishedAt || new Date().toISOString(),
+          snippet: (article.description || article.content || article.title).replace(/\s+/g, ' ').trim().slice(0, 480),
+          defaultSector: 'FinTech',
+          sourceRegion: 'Africa',
+        });
+      }
+    } catch (err) {
+      console.warn('[GNews API] Fetch error:', err instanceof Error ? err.message : err);
+    }
+  }
+
+  return results;
+}
+
+async function fetchRssArticles(
+  targetRegion?: Region | 'All'
+): Promise<{ articles: RawRssArticle[]; activeFeeds: number }> {
+  const enabledSources = rssSources.filter((s) => s.enabled !== false);
+  const feedsToPoll =
+    targetRegion && targetRegion !== 'All'
+      ? enabledSources.filter((s) => s.region === targetRegion)
+      : enabledSources;
+
+  const results = await Promise.allSettled(
+    feedsToPoll.map(async (feed) => {
+      const parsed = await rssParser.parseURL(feed.url);
+      const items = (parsed.items || []).slice(0, 3).map((entry) => {
+        const headline = (entry.title || '').trim();
+        let rawLink = (entry.link || '').trim();
+        if (!rawLink || rawLink.endsWith('/feed/') || rawLink.endsWith('/feed')) {
+          rawLink = `https://www.google.com/search?q=${encodeURIComponent(`${feed.name} ${headline}`)}`;
+        }
+        return {
+          headline,
+          source: feed.name,
+          url: rawLink,
+          publishedAt: entry.isoDate ? new Date(entry.isoDate).toISOString() : new Date().toISOString(),
+          snippet: (entry.contentSnippet || entry.content || '').replace(/\s+/g, ' ').trim().slice(0, 480),
+          defaultSector: feed.defaultSector,
+          sourceRegion: feed.region,
+        };
+      });
+      return items.filter((i) => i.headline.length > 15);
+    })
+  );
+
+  let activeFeeds = 0;
+  const collected: RawRssArticle[] = [];
+
+  for (const res of results) {
+    if (res.status === 'fulfilled' && res.value.length > 0) {
+      activeFeeds += 1;
+      collected.push(...res.value);
+    }
+  }
+
+  return { articles: collected, activeFeeds };
+}
+
+async function enrichArticlesWithGemini(articles: RawRssArticle[]): Promise<IntelligenceItem[]> {
+  if (!ai) {
+    throw new Error('GEMINI_API_KEY is not configured on the server.');
+  }
+  if (articles.length === 0) return [];
+
+  const promptPayload = articles.map((a, idx) => ({
+    index: idx,
+    headline: a.headline,
+    source: a.source,
+    snippet: a.snippet,
+  }));
+
+  const response = await ai.models.generateContent({
+    model: GEMINI_MODEL,
+    contents: `Analyze the following real-time news items for an executive intelligence dashboard covering Banking, FinTech, and Artificial Intelligence.
+For each item, extract structured classification, geolocation coordinates for the primary corporate/regulatory hub mentioned (defaulting to the organization's global headquarters if not explicitly stated), key entities, and write a crisp 2-3 sentence executive summary explaining why this advancement matters strategically to banking, fintech, or AI executives.
+
+Articles to analyze:
+${JSON.stringify(promptPayload)}`,
+    config: {
+      systemInstruction:
+        'You are a senior financial and technology intelligence analyst. Output strictly valid JSON matching the schema. Keep executiveSummary to 2-3 incisive, institutional-grade sentences explaining strategic impact. Classify Australia and New Zealand under region "Oceania". For developments mentioning Ghana, Bank of Ghana, Accra, MoMo, Telecel, MTN Ghana, or GhIPSS, classify region as "Africa", country as "Ghana", countryNameMatch as "Ghana", hubCity as "Accra", lat 5.6037, lng -0.1870. Ensure lat/lng accurately correspond to hubCity and countryNameMatch matches standard English country names (e.g., "United States of America", "United Kingdom", "Germany", "Singapore", "Japan", "France", "Switzerland", "United Arab Emirates", "Brazil", "Colombia", "Mexico", "India", "Canada", "China", "South Korea", "Sweden", "Australia", "New Zealand", "Nigeria", "Kenya", "South Africa", "Ghana").',
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            index: { type: Type.INTEGER },
+            relevant: { type: Type.BOOLEAN, description: 'True if meaningfully related to Banking, FinTech, or enterprise/frontier AI.' },
+            sector: { type: Type.STRING, description: 'One of: Banking, FinTech, AI' },
+            eventType: { type: Type.STRING, description: 'One of: Product Launch, M&A/Funding, Tech Breakthrough, Regulation' },
+            region: { type: Type.STRING, description: 'One of: North America, Europe, Asia-Pacific, Oceania, Middle East, Latin America, Africa' },
+            country: { type: Type.STRING },
+            countryNameMatch: { type: Type.STRING },
+            hubCity: { type: Type.STRING },
+            lat: { type: Type.NUMBER },
+            lng: { type: Type.NUMBER },
+            executiveSummary: { type: Type.STRING },
+            entities: { type: Type.ARRAY, items: { type: Type.STRING } },
+            technologyTag: { type: Type.STRING, description: '2-3 word technology/theme tag' },
+            impactWeight: { type: Type.NUMBER, description: 'Materiality weight from 6.0 to 9.8' },
+            capitalOrScaleLabel: { type: Type.STRING, description: 'Concise scale or deal label e.g. $120M Series B or Tier-1 Rollout' },
+            sentiment: { type: Type.STRING, description: 'One of: Constructive, Neutral, Cautious' },
+          },
+          required: [
+            'index',
+            'relevant',
+            'sector',
+            'eventType',
+            'region',
+            'country',
+            'countryNameMatch',
+            'hubCity',
+            'lat',
+            'lng',
+            'executiveSummary',
+            'entities',
+            'technologyTag',
+            'impactWeight',
+            'capitalOrScaleLabel',
+            'sentiment',
+          ],
+        },
+      },
+    },
+  });
+
+  const parsedText = (response.text ?? '[]').trim();
+  const analyzed = JSON.parse(parsedText) as Array<{
+    index: number;
+    relevant: boolean;
+    sector: string;
+    eventType: string;
+    region: string;
+    country: string;
+    countryNameMatch: string;
+    hubCity: string;
+    lat: number;
+    lng: number;
+    executiveSummary: string;
+    entities: string[];
+    technologyTag: string;
+    impactWeight: number;
+    capitalOrScaleLabel: string;
+    sentiment: string;
+  }>;
+
+  const validSectors: Sector[] = ['Banking', 'FinTech', 'AI'];
+  const validEvents: EventType[] = ['Product Launch', 'M&A/Funding', 'Tech Breakthrough', 'Regulation'];
+  const validRegions: Region[] = [
+    'North America',
+    'Europe',
+    'Asia-Pacific',
+    'Oceania',
+    'Middle East',
+    'Latin America',
+    'Africa',
+  ];
+  const validSentiments: Sentiment[] = ['Constructive', 'Neutral', 'Cautious'];
+
+  const enriched: IntelligenceItem[] = [];
+  for (const row of analyzed) {
+    if (!row.relevant) continue;
+    const raw = articles[row.index];
+    if (!raw) continue;
+
+    enriched.push({
+      id: `live-${Date.now()}-${row.index}`,
+      headline: raw.headline,
+      source: raw.source,
+      url: raw.url,
+      publishedAt: raw.publishedAt,
+      sector: validSectors.includes(row.sector as Sector) ? (row.sector as Sector) : raw.defaultSector,
+      eventType: validEvents.includes(row.eventType as EventType) ? (row.eventType as EventType) : 'Product Launch',
+      region: validRegions.includes(row.region as Region) ? (row.region as Region) : raw.sourceRegion,
+      country: row.country || 'United States',
+      countryNameMatch: row.countryNameMatch || row.country || 'United States of America',
+      hubCity: row.hubCity || 'San Francisco',
+      lat: typeof row.lat === 'number' && Number.isFinite(row.lat) ? row.lat : 37.7749,
+      lng: typeof row.lng === 'number' && Number.isFinite(row.lng) ? row.lng : -122.4194,
+      executiveSummary: row.executiveSummary,
+      entities: Array.isArray(row.entities) ? row.entities.slice(0, 4) : [],
+      technologyTag: row.technologyTag || 'Enterprise AI',
+      impactWeight: Math.min(9.9, Math.max(5.5, Number(row.impactWeight) || 7.8)),
+      capitalOrScaleLabel: row.capitalOrScaleLabel || 'Verified Signal',
+      sentiment: validSentiments.includes(row.sentiment as Sentiment) ? (row.sentiment as Sentiment) : 'Constructive',
+      isLiveIngested: true,
+    });
+  }
+
+  return enriched;
+}
+
+function selectBalancedContinentalBatch(
+  candidates: RawRssArticle[],
+  maxBatch: number
+): RawRssArticle[] {
+  const byRegion = new Map<Region, RawRssArticle[]>();
+  for (const article of candidates) {
+    const bucket = byRegion.get(article.sourceRegion);
+    if (bucket) bucket.push(article);
+    else byRegion.set(article.sourceRegion, [article]);
+  }
+
+  const selected: RawRssArticle[] = [];
+  const regionQueues = Array.from(byRegion.values());
+  let round = 0;
+  while (selected.length < maxBatch) {
+    let addedInRound = false;
+    for (const queue of regionQueues) {
+      if (round < queue.length && selected.length < maxBatch) {
+        selected.push(queue[round]);
+        addedInRound = true;
+      }
+    }
+    if (!addedInRound) break;
+    round += 1;
+  }
+  return selected;
+}
+
+async function runLiveIngestion(
+  targetRegion?: Region | 'All'
+): Promise<{ added: number; activeFeeds: number }> {
+  const { articles: rssArticles, activeFeeds } = await fetchRssArticles(targetRegion);
+  activeRssFeedCount = activeFeeds;
+
+  // Poll GNews API for Ghana tech, banking & business signals when Africa or All is synced
+  let allArticles = [...rssArticles];
+  if (!targetRegion || targetRegion === 'All' || targetRegion === 'Africa') {
+    const gnewsArticles = await fetchGNewsGhanaArticles();
+    if (gnewsArticles.length > 0) {
+      allArticles = [...gnewsArticles, ...allArticles];
+      activeRssFeedCount += 1;
+    }
+  }
+
+  const existingKeys = new Set(intelligenceStore.map((item) => normalizeHeadline(item.headline)));
+  const unseen = allArticles.filter((a) => !existingKeys.has(normalizeHeadline(a.headline)));
+
+  const freshCandidates =
+    targetRegion && targetRegion !== 'All'
+      ? unseen.slice(0, 6)
+      : selectBalancedContinentalBatch(unseen, 10);
+
+  if (freshCandidates.length === 0) {
+    lastIngestedAt = new Date().toISOString();
+    return { added: 0, activeFeeds };
+  }
+
+  if (ai) {
+    const enriched = await enrichArticlesWithGemini(freshCandidates);
+    if (enriched.length > 0) {
+      intelligenceStore = [...enriched, ...intelligenceStore].slice(0, 80);
+      liveFeedCount += enriched.length;
+    }
+    lastIngestedAt = new Date().toISOString();
+    return { added: enriched.length, activeFeeds };
+  }
+
+  lastIngestedAt = new Date().toISOString();
+  return { added: 0, activeFeeds };
+}
+
+async function createApp() {
+  const app = express();
+  app.use(express.json({ limit: '1mb' }));
+
+  app.get('/api/health', (_req, res) => {
+    res.json({ ok: true, geminiConfigured: Boolean(ai), itemsCount: intelligenceStore.length });
+  });
+
+  app.get('/api/sources', (_req, res) => {
+    res.json({
+      sources: rssSources,
+      totalSources: rssSources.length,
+      enabledSources: rssSources.filter((s) => s.enabled !== false).length,
+      continentsCovered: Array.from(new Set(rssSources.map((s) => s.region))),
+    });
+  });
+
+  app.post('/api/sources', async (req, res) => {
+    try {
+      const { name, url, region, scope, defaultSector } = req.body as Partial<NewsSourceEndpoint>;
+      if (!name || !name.trim() || !url || !url.trim()) {
+        res.status(400).json({ error: 'Feed name and valid RSS/Atom URL are required.' });
+        return;
+      }
+
+      const trimmedUrl = url.trim();
+      if (!/^https?:\/\//i.test(trimmedUrl)) {
+        res.status(400).json({ error: 'Feed URL must begin with http:// or https://' });
+        return;
+      }
+
+      // Verify the feed parses cleanly before adding
+      await rssParser.parseURL(trimmedUrl);
+
+      const newSource: NewsSourceEndpoint = {
+        id: `custom-${Date.now()}`,
+        name: name.trim(),
+        url: trimmedUrl,
+        region: region || 'North America',
+        scope: scope || 'Local',
+        defaultSector: defaultSector || 'FinTech',
+        enabled: true,
+        custom: true,
+      };
+
+      rssSources = [newSource, ...rssSources];
+      res.status(201).json({ source: newSource, sources: rssSources });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to parse RSS feed URL';
+      res.status(422).json({ error: `Feed validation failed: ${message}` });
+    }
+  });
+
+  app.patch('/api/sources/:id', (req, res) => {
+    const { id } = req.params;
+    const { enabled } = req.body as { enabled?: boolean };
+    const idx = rssSources.findIndex((s) => s.id === id);
+    if (idx === -1) {
+      res.status(404).json({ error: 'Source endpoint not found.' });
+      return;
+    }
+    rssSources[idx] = {
+      ...rssSources[idx],
+      enabled: typeof enabled === 'boolean' ? enabled : !rssSources[idx].enabled,
+    };
+    res.json({ source: rssSources[idx], sources: rssSources });
+  });
+
+  app.delete('/api/sources/:id', (req, res) => {
+    const { id } = req.params;
+    const existing = rssSources.find((s) => s.id === id);
+    if (!existing) {
+      res.status(404).json({ error: 'Source endpoint not found.' });
+      return;
+    }
+    rssSources = rssSources.filter((s) => s.id !== id);
+    res.json({ sources: rssSources });
+  });
+
+  app.get('/api/intelligence', (_req, res) => {
+    const sorted = [...intelligenceStore].sort(
+      (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+    );
+    res.json({
+      items: sorted,
+      lastIngestedAt,
+      liveFeedCount,
+      rssFeedsActive: activeRssFeedCount,
+    });
+  });
+
+  app.get('/api/intelligence/region/:region', (req, res) => {
+    const regionParam = decodeURIComponent(req.params.region);
+    const matching = intelligenceStore
+      .filter((item) => item.region.toLowerCase() === regionParam.toLowerCase())
+      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+    const localSources = rssSources.filter(
+      (s) => s.region.toLowerCase() === regionParam.toLowerCase()
+    );
+    res.json({
+      region: regionParam,
+      items: matching,
+      localSources,
+      count: matching.length,
+    });
+  });
+
+  app.post('/api/intelligence/ingest', async (req, res) => {
+    try {
+      const { region } = (req.body || {}) as { region?: Region | 'All' };
+      const result = await runLiveIngestion(region);
+      const sorted = [...intelligenceStore].sort(
+        (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+      );
+      res.json({
+        items: sorted,
+        added: result.added,
+        region: region || 'All',
+        rssFeedsActive: result.activeFeeds,
+        lastIngestedAt,
+        liveFeedCount,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Live ingestion failed';
+      res.status(502).json({ error: message });
+    }
+  });
+
+  app.post('/api/intelligence/analyze', async (req, res) => {
+    try {
+      if (!ai) {
+        res.status(503).json({
+          error: 'Gemini API key is not available on the server. Check Settings > Secrets.',
+        });
+        return;
+      }
+
+      const { headline, source, notes, url } = req.body as {
+        headline?: string;
+        source?: string;
+        notes?: string;
+        url?: string;
+      };
+
+      if (!headline || headline.trim().length < 10) {
+        res.status(400).json({ error: 'Please provide a headline or signal description (at least 10 characters).' });
+        return;
+      }
+
+      const validUrl =
+        url && (url.trim().startsWith('http://') || url.trim().startsWith('https://'))
+          ? url.trim()
+          : 'https://news.google.com/search?q=' +
+            encodeURIComponent(`${(source || '').trim()} ${headline.trim()}`);
+
+      const rawArticle: RawRssArticle = {
+        headline: headline.trim(),
+        source: (source || 'Executive Submission').trim(),
+        url: validUrl,
+        publishedAt: new Date().toISOString(),
+        snippet: (notes || headline).trim(),
+        defaultSector: 'FinTech',
+        sourceRegion: 'North America',
+      };
+
+      const enriched = await enrichArticlesWithGemini([rawArticle]);
+      if (enriched.length === 0) {
+        res.status(422).json({
+          error: 'Signal was not classified as relevant to Banking, FinTech, or AI developments.',
+        });
+        return;
+      }
+
+      intelligenceStore = [enriched[0], ...intelligenceStore].slice(0, 80);
+      liveFeedCount += 1;
+      lastIngestedAt = new Date().toISOString();
+
+      res.json({ item: enriched[0], items: intelligenceStore });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to analyze signal with Gemini';
+      res.status(502).json({ error: message });
+    }
+  });
+
+  app.post('/api/intelligence/briefing', async (req, res) => {
+    try {
+      if (!ai) {
+        res.status(503).json({
+          error: 'Gemini API key is not available on the server. Check Settings > Secrets.',
+        });
+        return;
+      }
+
+      const { scopeLabel, items } = req.body as {
+        scopeLabel?: string;
+        items?: Array<{
+          headline: string;
+          sector: string;
+          eventType: string;
+          hubCity: string;
+          country: string;
+          executiveSummary: string;
+        }>;
+      };
+
+      const contextItems = (items || []).slice(0, 12);
+      if (contextItems.length === 0) {
+        res.status(400).json({ error: 'No matching developments in the current filter scope to synthesize.' });
+        return;
+      }
+
+      const response = await ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: `Synthesize an institutional executive briefing for the following filtered market intelligence scope: "${scopeLabel || 'Global Banking, FinTech & AI'}".
+
+Developments:
+${JSON.stringify(contextItems)}`,
+        config: {
+          systemInstruction:
+            'You are a Chief Strategy Officer advisor producing a crisp, high-signal executive briefing for Banking, FinTech, and AI leaders. Avoid fluff or generic buzzwords. Be concrete, referencing specific hubs, firms, and regulatory/capital mechanics from the provided developments.',
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              strategicThesis: {
+                type: Type.STRING,
+                description: '2-3 sentence macro thesis summarizing the core shift across these developments.',
+              },
+              keySignals: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: '3 sharp bullet points identifying concrete breakthroughs or competitive inflections.',
+              },
+              capitalAndRegulatoryOutlook: {
+                type: Type.STRING,
+                description: '2 sentences on capital allocation or regulatory risk implications.',
+              },
+              priorityWatchlist: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: '3 specific entities, technologies, or corridors executives should monitor next.',
+              },
+            },
+            required: [
+              'strategicThesis',
+              'keySignals',
+              'capitalAndRegulatoryOutlook',
+              'priorityWatchlist',
+            ],
+          },
+        },
+      });
+
+      const parsed = JSON.parse((response.text ?? '{}').trim()) as Omit<
+        ExecutiveBriefing,
+        'scopeLabel' | 'generatedAt'
+      >;
+
+      const briefing: ExecutiveBriefing = {
+        scopeLabel: scopeLabel || 'Global Banking, FinTech & AI',
+        generatedAt: new Date().toISOString(),
+        strategicThesis: parsed.strategicThesis || '',
+        keySignals: parsed.keySignals || [],
+        capitalAndRegulatoryOutlook: parsed.capitalAndRegulatoryOutlook || '',
+        priorityWatchlist: parsed.priorityWatchlist || [],
+      };
+
+      res.json({ briefing });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Executive briefing generation failed';
+      res.status(502).json({ error: message });
+    }
+  });
+
+  if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+    });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.resolve(__dirname, 'dist');
+    app.use(express.static(distPath));
+    app.get('*', (_req, res) => {
+      const indexHtml = path.join(distPath, 'index.html');
+      if (fs.existsSync(indexHtml)) {
+        res.sendFile(indexHtml);
+      } else {
+        res.status(404).send('Build output not found.');
+      }
+    });
+  }
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Meridian Intel server listening on http://0.0.0.0:${PORT}`);
+    // Non-blocking background warm RSS check if Gemini key is present
+    if (ai) {
+      runLiveIngestion().catch((err) => {
+        console.warn('Initial background RSS check skipped:', err instanceof Error ? err.message : err);
+      });
+
+      // Periodic 15-minute background auto-sync
+      const AUTO_SYNC_INTERVAL_MS = 15 * 60 * 1000;
+      setInterval(() => {
+        console.log('[Auto-Sync] Running periodic 15-minute intelligence sync across RSS and GNews...');
+        runLiveIngestion().catch((err) => {
+          console.warn('[Auto-Sync] Background sync error:', err instanceof Error ? err.message : err);
+        });
+      }, AUTO_SYNC_INTERVAL_MS);
+    }
+  });
+}
+
+createApp();

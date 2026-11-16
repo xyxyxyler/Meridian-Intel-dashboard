@@ -1,0 +1,6 @@
+{
+  "name": "Meridian Intel",
+  "description": "Real-time global executive intelligence dashboard tracking breakthroughs across Banking, FinTech, and Artificial Intelligence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

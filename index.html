@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meridian Intel — Global Banking, FinTech & AI Intelligence</title>
+    <meta name="description" content="Real-time global executive intelligence dashboard tracking breakthroughs across Banking, FinTech, and Artificial Intelligence." />
+    <meta property="og:title" content="Meridian Intel — Global Banking, FinTech & AI Intelligence" />
+    <meta property="og:description" content="Real-time global executive intelligence dashboard tracking breakthroughs across Banking, FinTech, and Artificial Intelligence." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      (function() {
+        try {
+          var mode = localStorage.getItem('meridian_theme_mode');
+          var resolved = mode;
+          if (!resolved || resolved === 'system') {
+            resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.classList.add(resolved);
+          document.documentElement.setAttribute('data-theme', resolved);
+          var meta = document.querySelector('meta[name="color-scheme"]');
+          if (meta) meta.content = (mode === 'light' || mode === 'dark') ? mode : 'light dark';
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="antialiased selection:bg-amber-500/30 selection:text-amber-100">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
