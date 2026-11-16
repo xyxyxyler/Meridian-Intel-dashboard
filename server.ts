@@ -488,6 +488,161 @@ ${JSON.stringify(promptPayload)}`,
   return enriched;
 }
 
+function fallbackEnrichArticles(articles: RawRssArticle[]): IntelligenceItem[] {
+  return articles.map((raw, idx) => {
+    const text = `${raw.headline} ${raw.snippet}`.toLowerCase();
+
+    // Sector detection
+    let sector: Sector = raw.defaultSector;
+    if (/\b(ai|llm|generative|machine learning|model|synthetic|agent|copilot)\b/i.test(text)) {
+      sector = 'AI';
+    } else if (/\b(bank|central bank|reserve|deposit|liquidity|treasury|lender|lending)\b/i.test(text)) {
+      sector = 'Banking';
+    } else if (/\b(fintech|payment|wallet|remittance|stablecoin|crypto|pay|neobank)\b/i.test(text)) {
+      sector = 'FinTech';
+    }
+
+    // Event type detection
+    let eventType: EventType = 'Product Launch';
+    if (/\b(funding|raises|raised|seed|series [a-z]|invest|valuation|acquisition|acquire|merger)\b/i.test(text)) {
+      eventType = 'M&A/Funding';
+    } else if (/\b(regulat|compliance|license|central bank|guidance|framework|ban|sanction|fca|sec|ecb)\b/i.test(text)) {
+      eventType = 'Regulation';
+    } else if (/\b(breakthrough|benchmark|architecture|patent|algorithm|quantum|deepfake)\b/i.test(text)) {
+      eventType = 'Tech Breakthrough';
+    }
+
+    // Geolocation defaults based on source / region / keywords
+    let country = 'United States';
+    let countryNameMatch = 'United States of America';
+    let hubCity = 'New York';
+    let lat = 40.7128;
+    let lng = -74.006;
+    let region = raw.sourceRegion;
+
+    if (/\b(ghana|accra|cedi|bog|ghipss)\b/i.test(text)) {
+      region = 'Africa';
+      country = 'Ghana';
+      countryNameMatch = 'Ghana';
+      hubCity = 'Accra';
+      lat = 5.6037;
+      lng = -0.187;
+    } else if (/\b(nigeria|lagos|naira|cbn)\b/i.test(text)) {
+      region = 'Africa';
+      country = 'Nigeria';
+      countryNameMatch = 'Nigeria';
+      hubCity = 'Lagos';
+      lat = 6.5244;
+      lng = 3.3792;
+    } else if (/\b(kenya|nairobi|shilling)\b/i.test(text)) {
+      region = 'Africa';
+      country = 'Kenya';
+      countryNameMatch = 'Kenya';
+      hubCity = 'Nairobi';
+      lat = -1.2921;
+      lng = 36.8219;
+    } else if (/\b(uk|london|britain|fca|boe)\b/i.test(text)) {
+      region = 'Europe';
+      country = 'United Kingdom';
+      countryNameMatch = 'United Kingdom';
+      hubCity = 'London';
+      lat = 51.5074;
+      lng = -0.1278;
+    } else if (/\b(germany|berlin|frankfurt|bundesbank)\b/i.test(text)) {
+      region = 'Europe';
+      country = 'Germany';
+      countryNameMatch = 'Germany';
+      hubCity = 'Frankfurt';
+      lat = 50.1109;
+      lng = 8.6821;
+    } else if (/\b(france|paris|bnp)\b/i.test(text)) {
+      region = 'Europe';
+      country = 'France';
+      countryNameMatch = 'France';
+      hubCity = 'Paris';
+      lat = 48.8566;
+      lng = 2.3522;
+    } else if (/\b(singapore|mas)\b/i.test(text)) {
+      region = 'Asia-Pacific';
+      country = 'Singapore';
+      countryNameMatch = 'Singapore';
+      hubCity = 'Singapore';
+      lat = 1.3521;
+      lng = 103.8198;
+    } else if (/\b(japan|tokyo|boj|mufg)\b/i.test(text)) {
+      region = 'Asia-Pacific';
+      country = 'Japan';
+      countryNameMatch = 'Japan';
+      hubCity = 'Tokyo';
+      lat = 35.6762;
+      lng = 139.6503;
+    } else if (/\b(canada|toronto|montreal)\b/i.test(text)) {
+      region = 'North America';
+      country = 'Canada';
+      countryNameMatch = 'Canada';
+      hubCity = 'Toronto';
+      lat = 43.6532;
+      lng = -79.3832;
+    } else if (/\b(australia|sydney|melbourne|apra|rba)\b/i.test(text)) {
+      region = 'Oceania';
+      country = 'Australia';
+      countryNameMatch = 'Australia';
+      hubCity = 'Sydney';
+      lat = -33.8688;
+      lng = 151.2093;
+    } else if (raw.sourceRegion === 'Europe') {
+      country = 'United Kingdom';
+      countryNameMatch = 'United Kingdom';
+      hubCity = 'London';
+      lat = 51.5074;
+      lng = -0.1278;
+    } else if (raw.sourceRegion === 'Asia-Pacific') {
+      country = 'Singapore';
+      countryNameMatch = 'Singapore';
+      hubCity = 'Singapore';
+      lat = 1.3521;
+      lng = 103.8198;
+    } else if (raw.sourceRegion === 'Africa') {
+      country = 'Ghana';
+      countryNameMatch = 'Ghana';
+      hubCity = 'Accra';
+      lat = 5.6037;
+      lng = -0.187;
+    }
+
+    const cleanSnippet = raw.snippet
+      ? raw.snippet.replace(/<[^>]*>/g, '').trim().slice(0, 260)
+      : '';
+    const executiveSummary = cleanSnippet
+      ? `${cleanSnippet}. Monitored institutional signal via ${raw.source}.`
+      : `${raw.headline}. Institutional signal registered from ${raw.source} across ${region}.`;
+
+    return {
+      id: `live-${Date.now()}-${idx}`,
+      headline: raw.headline,
+      source: raw.source,
+      url: raw.url,
+      publishedAt: raw.publishedAt,
+      sector,
+      eventType,
+      region,
+      country,
+      countryNameMatch,
+      hubCity,
+      lat,
+      lng,
+      executiveSummary,
+      entities: [raw.source, hubCity],
+      technologyTag:
+        sector === 'AI' ? 'Enterprise AI' : sector === 'Banking' ? 'Core Banking' : 'Payment Rails',
+      impactWeight: 8.0,
+      capitalOrScaleLabel: 'Live Market Signal',
+      sentiment: 'Constructive' as Sentiment,
+      isLiveIngested: true,
+    };
+  });
+}
+
 function selectBalancedContinentalBatch(
   candidates: RawRssArticle[],
   maxBatch: number
@@ -545,18 +700,28 @@ async function runLiveIngestion(
     return { added: 0, activeFeeds };
   }
 
-  if (ai) {
-    const enriched = await enrichArticlesWithGemini(freshCandidates);
-    if (enriched.length > 0) {
-      intelligenceStore = [...enriched, ...intelligenceStore].slice(0, 80);
-      liveFeedCount += enriched.length;
+  let enriched: IntelligenceItem[] = [];
+  try {
+    if (ai) {
+      enriched = await enrichArticlesWithGemini(freshCandidates);
+    } else {
+      enriched = fallbackEnrichArticles(freshCandidates);
     }
-    lastIngestedAt = new Date().toISOString();
-    return { added: enriched.length, activeFeeds };
+  } catch (err) {
+    console.warn(
+      'Gemini enrichment unavailable or quota exceeded; applying heuristic extraction:',
+      err instanceof Error ? err.message : err
+    );
+    enriched = fallbackEnrichArticles(freshCandidates);
+  }
+
+  if (enriched.length > 0) {
+    intelligenceStore = [...enriched, ...intelligenceStore].slice(0, 80);
+    liveFeedCount += enriched.length;
   }
 
   lastIngestedAt = new Date().toISOString();
-  return { added: 0, activeFeeds };
+  return { added: enriched.length, activeFeeds };
 }
 
 async function createApp() {

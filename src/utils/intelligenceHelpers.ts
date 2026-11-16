@@ -74,7 +74,8 @@ export function getTimeframeCutoffMs(timeframe: Timeframe): number {
   const now = Date.now();
   if (timeframe === '24h') return now - 24 * 60 * 60 * 1000;
   if (timeframe === '7d') return now - 7 * 24 * 60 * 60 * 1000;
-  return now - 30 * 24 * 60 * 60 * 1000;
+  if (timeframe === '30d') return now - 30 * 24 * 60 * 60 * 1000;
+  return 0;
 }
 
 export function filterIntelligenceItems(
@@ -234,13 +235,27 @@ export function computeTrendMetrics(items: IntelligenceItem[]): TrendMetrics {
 }
 
 export function formatRelativeTime(isoString: string): string {
-  const diffMs = Math.max(0, Date.now() - new Date(isoString).getTime());
+  const published = new Date(isoString);
+  const diffMs = Date.now() - published.getTime();
+
+  if (diffMs < 60000) return 'Just now';
+
   const mins = Math.floor(diffMs / 60000);
-  if (mins < 60) return `${Math.max(1, mins)}m ago`;
+  if (mins < 60) return `${mins}m ago`;
+
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h ago`;
+
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days}d ago`;
+
+  // For older articles, return actual formatted publication date (e.g. Feb 5, 2025)
+  return published.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: published.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+  });
 }
 
 export function buildScopeLabel(filters: DashboardFilters): string {
@@ -251,7 +266,7 @@ export function buildScopeLabel(filters: DashboardFilters): string {
   else if (filters.country) parts.push(filters.country);
   else if (filters.region !== 'All') parts.push(filters.region);
   else parts.push('Global');
-  parts.push(filters.timeframe.toUpperCase());
+  parts.push(filters.timeframe === 'all' ? 'ALL TIME' : filters.timeframe.toUpperCase());
   return parts.join(' · ');
 }
 

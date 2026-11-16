@@ -85,6 +85,23 @@ export function SignalDetailDrawer({
               <div className="text-slate-500 mb-1">Source Attribution</div>
               <div className="text-slate-200 font-medium">{item.source}</div>
             </div>
+            <div>
+              <div className="text-slate-500 mb-1">Publication Date</div>
+              <div className="text-slate-200 font-medium">
+                {new Date(item.publishedAt).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </div>
+              <div className="font-mono text-[11px] text-slate-500 tabular-nums mt-0.5">
+                {new Date(item.publishedAt).toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  timeZoneName: 'short',
+                })} ({formatRelativeTime(item.publishedAt)})
+              </div>
+            </div>
           </div>
 
           {item.entities.length > 0 && (
