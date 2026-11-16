@@ -164,7 +164,7 @@ const BASE_RSS_SOURCES: NewsSourceEndpoint[] = [
   // Africa
   {
     id: 'africa-techcabal',
-    name: 'TechCabal (West Africa)',
+    name: 'TechCabal (Pan-Africa)',
     region: 'Africa',
     scope: 'Local',
     url: 'https://techcabal.com/feed/',
@@ -185,6 +185,54 @@ const BASE_RSS_SOURCES: NewsSourceEndpoint[] = [
     scope: 'Local',
     url: 'https://news.google.com/rss/search?q=fintech+OR+banking+AI+Africa+OR+Nigeria+OR+Kenya&hl=en-US&gl=US&ceid=US:en',
     defaultSector: 'Banking',
+  },
+  {
+    id: 'ke-fintech-wire',
+    name: 'Kenya & East Africa Banking Wire',
+    region: 'Africa',
+    scope: 'Local',
+    url: 'https://news.google.com/rss/search?q=Kenya+(fintech+OR+banking+OR+Safaricom+OR+%22Central+Bank%22+OR+%22M-Pesa%22)&hl=en-US&gl=US&ceid=US:en',
+    defaultSector: 'FinTech',
+  },
+  {
+    id: 'sa-banking-fintech',
+    name: 'South Africa FinTech & Banking Wire',
+    region: 'Africa',
+    scope: 'Local',
+    url: 'https://news.google.com/rss/search?q=%22South+Africa%22+(fintech+OR+banking+OR+Capitec+OR+TymeBank+OR+SARB+OR+Absa)&hl=en-US&gl=US&ceid=US:en',
+    defaultSector: 'Banking',
+  },
+  {
+    id: 'eg-fintech-wire',
+    name: 'Egypt & North Africa FinTech Wire',
+    region: 'Africa',
+    scope: 'Local',
+    url: 'https://news.google.com/rss/search?q=Egypt+(fintech+OR+banking+OR+Fawry+OR+Paymob+OR+%22Central+Bank%22)&hl=en-US&gl=US&ceid=US:en',
+    defaultSector: 'FinTech',
+  },
+  {
+    id: 'rw-kifc-wire',
+    name: 'Rwanda & KIFC Financial Innovation Wire',
+    region: 'Africa',
+    scope: 'Local',
+    url: 'https://news.google.com/rss/search?q=Rwanda+(fintech+OR+banking+OR+KIFC+OR+%22National+Bank+of+Rwanda%22)&hl=en-US&gl=US&ceid=US:en',
+    defaultSector: 'FinTech',
+  },
+  {
+    id: 'tz-ug-eastafrica-wire',
+    name: 'Tanzania & Uganda Banking Wire',
+    region: 'Africa',
+    scope: 'Regional',
+    url: 'https://news.google.com/rss/search?q=(Tanzania+OR+Uganda)+(fintech+OR+banking+OR+%22Bank+of+Tanzania%22+OR+%22mobile+money%22)&hl=en-US&gl=US&ceid=US:en',
+    defaultSector: 'Banking',
+  },
+  {
+    id: 'francophone-africa-wire',
+    name: 'Francophone Africa (Senegal / Côte d\'Ivoire) Wire',
+    region: 'Africa',
+    scope: 'Regional',
+    url: 'https://news.google.com/rss/search?q=(Senegal+OR+%22Ivory+Coast%22+OR+BCEAO+OR+Abidjan)+(fintech+OR+banking+OR+Wave)&hl=en-US&gl=US&ceid=US:en',
+    defaultSector: 'FinTech',
   },
   // Dedicated Ghana FinTech, Banking & Technology Endpoints
   {
@@ -247,12 +295,15 @@ function normalizeHeadline(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 64);
 }
 
-async function fetchGNewsGhanaArticles(): Promise<RawRssArticle[]> {
+async function fetchGNewsPanAfricaArticles(): Promise<RawRssArticle[]> {
   if (!GNEWS_API_KEY) return [];
 
   const queries = [
-    'Ghana (fintech OR banking OR AI OR business)',
-    'Ghana ("Bank of Ghana" OR "mobile money" OR "e-cedi" OR startup)',
+    'Kenya (fintech OR banking OR Safaricom OR M-Pesa)',
+    '"South Africa" (fintech OR banking OR Capitec OR TymeBank OR SARB)',
+    'Egypt (fintech OR banking OR "Central Bank" OR Fawry)',
+    'Ghana ("Bank of Ghana" OR fintech OR "mobile money" OR "e-cedi")',
+    'Rwanda ("KIFC" OR fintech OR banking)',
   ];
 
   const results: RawRssArticle[] = [];
@@ -261,7 +312,7 @@ async function fetchGNewsGhanaArticles(): Promise<RawRssArticle[]> {
 
   for (const query of queries) {
     try {
-      const endpoint = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&max=10&apikey=${GNEWS_API_KEY}`;
+      const endpoint = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=en&max=8&apikey=${GNEWS_API_KEY}`;
       const response = await fetch(endpoint, {
         headers: { 'User-Agent': 'MeridianIntel/1.0 (+Executive Aggregator)' },
         signal: AbortSignal.timeout(6000),
@@ -292,7 +343,7 @@ async function fetchGNewsGhanaArticles(): Promise<RawRssArticle[]> {
 
         results.push({
           headline: article.title.trim(),
-          source: article.source?.name ? `GNews / ${article.source.name}` : 'GNews Ghana',
+          source: article.source?.name ? `GNews / ${article.source.name}` : 'GNews Pan-Africa',
           url: article.url.trim(),
           publishedAt: article.publishedAt || new Date().toISOString(),
           snippet: (article.description || article.content || article.title).replace(/\s+/g, ' ').trim().slice(0, 480),
@@ -375,7 +426,7 @@ Articles to analyze:
 ${JSON.stringify(promptPayload)}`,
     config: {
       systemInstruction:
-        'You are a senior financial and technology intelligence analyst. Output strictly valid JSON matching the schema. Keep executiveSummary to 2-3 incisive, institutional-grade sentences explaining strategic impact. Classify Australia and New Zealand under region "Oceania". For developments mentioning Ghana, Bank of Ghana, Accra, MoMo, Telecel, MTN Ghana, or GhIPSS, classify region as "Africa", country as "Ghana", countryNameMatch as "Ghana", hubCity as "Accra", lat 5.6037, lng -0.1870. Ensure lat/lng accurately correspond to hubCity and countryNameMatch matches standard English country names (e.g., "United States of America", "United Kingdom", "Germany", "Singapore", "Japan", "France", "Switzerland", "United Arab Emirates", "Brazil", "Colombia", "Mexico", "India", "Canada", "China", "South Korea", "Sweden", "Australia", "New Zealand", "Nigeria", "Kenya", "South Africa", "Ghana").',
+        'You are a senior financial and technology intelligence analyst. Output strictly valid JSON matching the schema. Keep executiveSummary to 2-3 incisive, institutional-grade sentences explaining strategic impact. Classify Australia and New Zealand under region "Oceania". For pan-African developments, accurately assign the proper hub, country, and coordinates: Kenya (Nairobi: lat -1.2921, lng 36.8219), South Africa (Johannesburg: lat -26.2041, lng 28.0473 or Cape Town), Egypt (Cairo: lat 30.0444, lng 31.2357), Rwanda (Kigali: lat -1.9441, lng 30.0619), Senegal (Dakar: lat 14.7167, lng -17.4677), Côte d\'Ivoire (Abidjan: lat 5.3600, lng -4.0083), Tanzania (Dar es Salaam: lat -6.7924, lng 39.2083), Uganda (Kampala: lat 0.3476, lng 32.5825), Morocco (Casablanca: lat 33.5731, lng -7.5898), Nigeria (Lagos: lat 6.5244, lng 3.3792), Ghana (Accra: lat 5.6037, lng -0.1870). Ensure lat/lng accurately correspond to hubCity and countryNameMatch matches standard English country names (e.g., "United States of America", "United Kingdom", "Germany", "Singapore", "Japan", "France", "Switzerland", "United Arab Emirates", "Brazil", "Colombia", "Mexico", "India", "Canada", "China", "South Korea", "Sweden", "Australia", "New Zealand", "Nigeria", "Kenya", "South Africa", "Egypt", "Rwanda", "Senegal", "Tanzania", "Uganda", "Morocco", "Ghana").',
       responseMimeType: 'application/json',
       responseSchema: {
         type: Type.ARRAY,
@@ -520,27 +571,83 @@ function fallbackEnrichArticles(articles: RawRssArticle[]): IntelligenceItem[] {
     let lng = -74.006;
     let region = raw.sourceRegion;
 
-    if (/\b(ghana|accra|cedi|bog|ghipss)\b/i.test(text)) {
-      region = 'Africa';
-      country = 'Ghana';
-      countryNameMatch = 'Ghana';
-      hubCity = 'Accra';
-      lat = 5.6037;
-      lng = -0.187;
-    } else if (/\b(nigeria|lagos|naira|cbn)\b/i.test(text)) {
-      region = 'Africa';
-      country = 'Nigeria';
-      countryNameMatch = 'Nigeria';
-      hubCity = 'Lagos';
-      lat = 6.5244;
-      lng = 3.3792;
-    } else if (/\b(kenya|nairobi|shilling)\b/i.test(text)) {
+    if (/\b(kenya|nairobi|safaricom|m-pesa|central bank of kenya|cbk|shilling)\b/i.test(text) || /kenya/i.test(raw.source)) {
       region = 'Africa';
       country = 'Kenya';
       countryNameMatch = 'Kenya';
       hubCity = 'Nairobi';
       lat = -1.2921;
       lng = 36.8219;
+    } else if (/\b(south africa|johannesburg|cape town|sarb|capitec|tymebank|absa|standard bank|rand|jse|telkom)\b/i.test(text) || /south africa/i.test(raw.source)) {
+      region = 'Africa';
+      country = 'South Africa';
+      countryNameMatch = 'South Africa';
+      hubCity = 'Johannesburg';
+      lat = -26.2041;
+      lng = 28.0473;
+    } else if (/\b(egypt|cairo|fawry|paymob|instapay|central bank of egypt|cbe|egyptian)\b/i.test(text) || /egypt/i.test(raw.source)) {
+      region = 'Africa';
+      country = 'Egypt';
+      countryNameMatch = 'Egypt';
+      hubCity = 'Cairo';
+      lat = 30.0444;
+      lng = 31.2357;
+    } else if (/\b(rwanda|kigali|kifc|national bank of rwanda|bnr)\b/i.test(text) || /rwanda/i.test(raw.source)) {
+      region = 'Africa';
+      country = 'Rwanda';
+      countryNameMatch = 'Rwanda';
+      hubCity = 'Kigali';
+      lat = -1.9441;
+      lng = 30.0619;
+    } else if (/\b(senegal|dakar|bceao|wave)\b/i.test(text) || /senegal/i.test(raw.source)) {
+      region = 'Africa';
+      country = 'Senegal';
+      countryNameMatch = 'Senegal';
+      hubCity = 'Dakar';
+      lat = 14.7167;
+      lng = -17.4677;
+    } else if (/\b(ivory coast|cote d'?ivoire|abidjan)\b/i.test(text)) {
+      region = 'Africa';
+      country = "Cote d'Ivoire";
+      countryNameMatch = "Cote d'Ivoire";
+      hubCity = 'Abidjan';
+      lat = 5.36;
+      lng = -4.0083;
+    } else if (/\b(tanzania|dar es salaam|bank of tanzania)\b/i.test(text)) {
+      region = 'Africa';
+      country = 'Tanzania';
+      countryNameMatch = 'Tanzania';
+      hubCity = 'Dar es Salaam';
+      lat = -6.7924;
+      lng = 39.2083;
+    } else if (/\b(uganda|kampala|bank of uganda)\b/i.test(text)) {
+      region = 'Africa';
+      country = 'Uganda';
+      countryNameMatch = 'Uganda';
+      hubCity = 'Kampala';
+      lat = 0.3476;
+      lng = 32.5825;
+    } else if (/\b(morocco|casablanca|rabat|bank al-maghrib)\b/i.test(text)) {
+      region = 'Africa';
+      country = 'Morocco';
+      countryNameMatch = 'Morocco';
+      hubCity = 'Casablanca';
+      lat = 33.5731;
+      lng = -7.5898;
+    } else if (/\b(nigeria|lagos|naira|cbn|paystack|flutterwave|interswitch)\b/i.test(text) || /nigeria/i.test(raw.source)) {
+      region = 'Africa';
+      country = 'Nigeria';
+      countryNameMatch = 'Nigeria';
+      hubCity = 'Lagos';
+      lat = 6.5244;
+      lng = 3.3792;
+    } else if (/\b(ghana|accra|cedi|bog|ghipss|telecel)\b/i.test(text) || /ghana/i.test(raw.source)) {
+      region = 'Africa';
+      country = 'Ghana';
+      countryNameMatch = 'Ghana';
+      hubCity = 'Accra';
+      lat = 5.6037;
+      lng = -0.187;
     } else if (/\b(uk|london|britain|fca|boe)\b/i.test(text)) {
       region = 'Europe';
       country = 'United Kingdom';
@@ -603,11 +710,21 @@ function fallbackEnrichArticles(articles: RawRssArticle[]): IntelligenceItem[] {
       lat = 1.3521;
       lng = 103.8198;
     } else if (raw.sourceRegion === 'Africa') {
-      country = 'Ghana';
-      countryNameMatch = 'Ghana';
-      hubCity = 'Accra';
-      lat = 5.6037;
-      lng = -0.187;
+      // Default regional African fallbacks distributed across continental hubs
+      const hubs = [
+        { country: 'Kenya', match: 'Kenya', city: 'Nairobi', lat: -1.2921, lng: 36.8219 },
+        { country: 'South Africa', match: 'South Africa', city: 'Johannesburg', lat: -26.2041, lng: 28.0473 },
+        { country: 'Egypt', match: 'Egypt', city: 'Cairo', lat: 30.0444, lng: 31.2357 },
+        { country: 'Rwanda', match: 'Rwanda', city: 'Kigali', lat: -1.9441, lng: 30.0619 },
+        { country: 'Nigeria', match: 'Nigeria', city: 'Lagos', lat: 6.5244, lng: 3.3792 },
+        { country: 'Ghana', match: 'Ghana', city: 'Accra', lat: 5.6037, lng: -0.1870 },
+      ];
+      const selected = hubs[idx % hubs.length];
+      country = selected.country;
+      countryNameMatch = selected.match;
+      hubCity = selected.city;
+      lat = selected.lat;
+      lng = selected.lng;
     }
 
     const cleanSnippet = raw.snippet
@@ -677,10 +794,10 @@ async function runLiveIngestion(
   const { articles: rssArticles, activeFeeds } = await fetchRssArticles(targetRegion);
   activeRssFeedCount = activeFeeds;
 
-  // Poll GNews API for Ghana tech, banking & business signals when Africa or All is synced
+  // Poll GNews API for pan-African tech, banking & business signals when Africa or All is synced
   let allArticles = [...rssArticles];
   if (!targetRegion || targetRegion === 'All' || targetRegion === 'Africa') {
-    const gnewsArticles = await fetchGNewsGhanaArticles();
+    const gnewsArticles = await fetchGNewsPanAfricaArticles();
     if (gnewsArticles.length > 0) {
       allArticles = [...gnewsArticles, ...allArticles];
       activeRssFeedCount += 1;
