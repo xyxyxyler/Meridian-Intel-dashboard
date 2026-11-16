@@ -210,7 +210,7 @@ export default function App() {
     filters.searchQuery.trim() !== '';
 
   return (
-    <div className="min-h-screen lg:min-h-screen xl:h-screen xl:overflow-hidden bg-[#090C10] text-slate-100 flex flex-col">
+    <div className="min-h-screen md:min-h-screen xl:h-screen xl:overflow-hidden bg-[#090C10] text-slate-100 flex flex-col">
       {/* Clean Executive Wallboard Top Bar */}
       <header className="border-b border-slate-800/80 bg-[#090C10]/95 backdrop-blur-sm shrink-0 z-30">
         <div className="max-w-[1840px] mx-auto px-3 sm:px-6 h-12 flex items-center justify-between gap-3 sm:gap-6">
@@ -408,8 +408,8 @@ export default function App() {
           </div>
         )}
 
-        {/* Mobile Adaptive View Switcher (Hidden on lg+ desktop) */}
-        <div className="lg:hidden flex items-center p-1 bg-[#11161E] border border-slate-800/90 rounded-xl gap-1 shrink-0">
+        {/* Mobile Adaptive View Switcher (Hidden on md+ tablet/desktop) */}
+        <div className="md:hidden flex items-center p-1 bg-[#11161E] border border-slate-800/90 rounded-xl gap-1 shrink-0">
           <button
             type="button"
             onClick={() => setMobileView('feed')}
@@ -467,7 +467,7 @@ export default function App() {
         <div
           className={
             mobileView === 'feed' || mobileView === 'map'
-              ? 'hidden lg:block'
+              ? 'hidden md:block'
               : 'block'
           }
         >
@@ -480,17 +480,17 @@ export default function App() {
         {/* Zero-Scroll Full-Viewport Neo-Bento Wallboard Grid */}
         <section
           aria-label="Global Intelligence Wallboard"
-          className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-2.5"
+          className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-2.5"
         >
-          {/* Left Column (5 Cols): Global Heatmap + Bottom Hub/Sector Strip */}
+          {/* Left Column (5 Cols on md+): Global Heatmap + Bottom Hub/Sector Strip */}
           <div
-            className={`lg:col-span-5 flex flex-col gap-2.5 min-h-0 ${
-              mobileView === 'feed' ? 'hidden lg:flex' : 'flex'
+            className={`md:col-span-5 flex flex-col gap-2 sm:gap-2.5 min-h-0 ${
+              mobileView === 'feed' ? 'hidden md:flex' : 'flex'
             }`}
           >
             <div
-              className={`flex-1 min-h-0 ${
-                mobileView === 'analytics' ? 'hidden lg:block' : 'block'
+              className={`flex-1 min-h-[260px] md:min-h-0 ${
+                mobileView === 'analytics' ? 'hidden md:block' : 'block'
               }`}
             >
               <GlobalHeatmap
@@ -513,14 +513,14 @@ export default function App() {
             </div>
 
             <div
-              className={`lg:h-[185px] xl:h-[210px] shrink-0 grid grid-cols-1 md:grid-cols-12 gap-2.5 ${
-                mobileView === 'feed' ? 'hidden lg:grid' : 'grid'
+              className={`min-h-[195px] md:h-[195px] xl:h-[215px] shrink-0 grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-2.5 ${
+                mobileView === 'feed' ? 'hidden md:grid' : 'grid'
               }`}
             >
               <div
-                className={`md:col-span-7 min-h-0 ${
-                  mobileView === 'map' ? 'block' : 'block'
-                }`}
+                className={`${
+                  mobileView === 'map' ? 'col-span-full' : 'sm:col-span-7'
+                } min-h-[190px] h-full`}
               >
                 <HubLeaderboardCard
                   items={filteredItems}
@@ -531,8 +531,8 @@ export default function App() {
                 />
               </div>
               <div
-                className={`md:col-span-5 min-h-0 ${
-                  mobileView === 'map' ? 'hidden lg:block' : 'block'
+                className={`sm:col-span-5 min-h-[190px] h-full ${
+                  mobileView === 'map' ? 'hidden md:block' : 'block'
                 }`}
               >
                 <SectorMixCard items={filteredItems} />
@@ -540,15 +540,15 @@ export default function App() {
             </div>
           </div>
 
-          {/* Right Column (7 Cols - Expanded for Large Screen Reading): Auto-Rotating Executive Feed + Gemini Synthesis */}
+          {/* Right Column (7 Cols on md+): Auto-Rotating Executive Feed + Gemini Synthesis */}
           <div
-            className={`lg:col-span-7 flex flex-col gap-2.5 min-h-0 ${
-              mobileView === 'map' ? 'hidden lg:flex' : 'flex'
+            className={`md:col-span-7 flex flex-col gap-2 sm:gap-2.5 min-h-0 ${
+              mobileView === 'map' ? 'hidden md:flex' : 'flex'
             }`}
           >
             <div
               className={`flex-1 min-h-0 ${
-                mobileView === 'analytics' ? 'hidden lg:block' : 'block'
+                mobileView === 'analytics' ? 'hidden md:block' : 'block'
               }`}
             >
               <IntelligenceFeed
@@ -563,8 +563,8 @@ export default function App() {
             </div>
 
             <div
-              className={`lg:h-[185px] xl:h-[210px] shrink-0 ${
-                mobileView === 'map' ? 'hidden lg:block' : 'block'
+              className={`min-h-[160px] md:h-[165px] xl:h-[185px] shrink-0 ${
+                mobileView === 'map' ? 'hidden md:block' : 'block'
               }`}
             >
               <ExecutiveSynthesisCard

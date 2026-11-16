@@ -70,15 +70,15 @@ export function IntelligenceFeed({
     <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="bg-[#11161E] border border-slate-800/80 rounded-xl p-4 flex flex-col gap-2.5 h-full min-h-0"
+      className="bg-[#11161E] border border-slate-800/80 rounded-xl p-3 sm:p-3.5 xl:p-4 flex flex-col gap-1.5 sm:gap-2 h-full min-h-0"
     >
       {/* Header + Display Pager */}
       <div className="flex items-center justify-between gap-2 shrink-0">
         <div className="flex items-baseline gap-2 min-w-0">
-          <h2 className="font-display text-base font-semibold text-slate-100 tracking-tight whitespace-nowrap">
+          <h2 className="font-display text-sm sm:text-base font-semibold text-slate-100 tracking-tight whitespace-nowrap">
             Intelligence Feed
           </h2>
-          <span className="font-mono text-[11px] text-slate-400 tabular-nums shrink-0">
+          <span className="font-mono text-[10px] sm:text-[11px] text-slate-400 tabular-nums shrink-0">
             {items.length} signals
           </span>
         </div>
@@ -89,12 +89,12 @@ export function IntelligenceFeed({
               type="button"
               onClick={() => setAutoCycle((prev) => !prev)}
               title={autoCycle ? 'Pause display rotation' : 'Resume display rotation'}
-              className={`px-2 py-1 text-[11px] font-medium rounded-md border transition-colors inline-flex items-center gap-1 cursor-pointer ${autoCycle
+              className={`px-2 py-0.5 sm:py-1 text-[10px] sm:text-[11px] font-medium rounded-md border transition-colors inline-flex items-center gap-1 cursor-pointer min-h-[26px] ${autoCycle
                 ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
                 : 'bg-[#090C10] border-slate-800 text-slate-400 hover:text-slate-200'
                 }`}
             >
-              {autoCycle ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+              {autoCycle ? <Pause className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> : <Play className="w-2.5 h-2.5 sm:w-3 sm:h-3" />}
               <span>Auto</span>
             </button>
 
@@ -103,18 +103,18 @@ export function IntelligenceFeed({
                 type="button"
                 onClick={() => setPage((prev) => (prev - 1 + totalPages) % totalPages)}
                 aria-label="Previous intelligence page"
-                className="p-1.5 min-w-[28px] min-h-[28px] flex items-center justify-center text-slate-400 hover:text-slate-100 cursor-pointer"
+                className="p-1 min-w-[26px] min-h-[26px] flex items-center justify-center text-slate-400 hover:text-slate-100 cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              <span className="px-1.5 font-mono text-[11px] text-slate-300 tabular-nums">
+              <span className="px-1.5 font-mono text-[10px] sm:text-[11px] text-slate-300 tabular-nums">
                 {safePage + 1}/{totalPages}
               </span>
               <button
                 type="button"
                 onClick={() => setPage((prev) => (prev + 1) % totalPages)}
                 aria-label="Next intelligence page"
-                className="p-1.5 min-w-[28px] min-h-[28px] flex items-center justify-center text-slate-400 hover:text-slate-100 cursor-pointer"
+                className="p-1 min-w-[26px] min-h-[26px] flex items-center justify-center text-slate-400 hover:text-slate-100 cursor-pointer"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
@@ -123,8 +123,8 @@ export function IntelligenceFeed({
         )}
       </div>
 
-      {/* Zero-Scroll Fitted Cards with Graceful Overflow */}
-      <div className="flex-1 min-h-0 flex flex-col divide-y divide-slate-800/70 overflow-y-auto intel-scroll pr-0.5">
+      {/* Zero-Scroll 3-Card Display Container — Guaranteed 3 Items Visible */}
+      <div className="flex-1 min-h-0 flex flex-col justify-between divide-y divide-slate-800/70 overflow-y-auto intel-scroll pr-0.5">
         {isIngesting && items.length === 0 ? (
           <div className="space-y-3 py-2">
             {[1, 2, 3].map((skeleton) => (
@@ -158,72 +158,72 @@ export function IntelligenceFeed({
             return (
               <article
                 key={item.id}
-                className={`py-3 first:pt-1.5 last:pb-1.5 flex flex-col justify-start transition-colors rounded-lg px-2.5 -mx-1 shrink-0 ${
+                className={`py-1 sm:py-1.5 xl:py-2 first:pt-0.5 last:pb-0.5 flex-1 min-h-[88px] xl:min-h-[96px] flex flex-col justify-between transition-colors rounded-lg px-2 -mx-1 shrink ${
                   isSelected ? 'bg-slate-800/45' : 'hover:bg-slate-800/25'
                 }`}
               >
                 {/* Unboxed Metadata Row */}
-                <div className="flex items-center justify-between gap-2 text-[11px] xl:text-xs text-slate-400 mb-1.5">
-                  <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                    <span className={`font-medium ${SECTOR_COLORS[item.sector].text}`}>
+                <div className="flex items-center justify-between gap-2 text-[10px] sm:text-[11px] text-slate-400 shrink-0">
+                  <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 min-w-0">
+                    <span className={`font-semibold ${SECTOR_COLORS[item.sector].text}`}>
                       {item.sector}
                     </span>
-                    <span aria-hidden="true">·</span>
-                    <span className="text-slate-300">{item.eventType}</span>
-                    <span aria-hidden="true">·</span>
-                    <span className="inline-flex items-center gap-1 text-slate-400">
-                      <MapPin className="w-3 h-3 text-slate-500 shrink-0" aria-hidden="true" />
-                      {item.hubCity}, {item.country}
+                    <span aria-hidden="true" className="text-slate-600">·</span>
+                    <span className="text-slate-300 font-medium">{item.eventType}</span>
+                    <span aria-hidden="true" className="text-slate-600">·</span>
+                    <span className="inline-flex items-center gap-1 text-slate-400 truncate">
+                      <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-500 shrink-0" aria-hidden="true" />
+                      <span className="truncate">{item.hubCity}, {item.country}</span>
                     </span>
                   </div>
-                  <span className="font-mono text-[11px] text-slate-500 tabular-nums shrink-0">
+                  <span className="font-mono text-[10px] sm:text-[11px] text-slate-500 tabular-nums shrink-0">
                     {formatRelativeTime(item.publishedAt)}
                   </span>
                 </div>
 
-                {/* Headline — Complete Text Without Ellipsis Truncation */}
+                {/* Headline — Clamped to 2 lines for guaranteed wallboard display fit */}
                 <button
                   type="button"
                   onClick={() => onSelectItem(item)}
-                  className="text-left group w-full cursor-pointer"
+                  className="text-left group w-full cursor-pointer my-0.5"
                 >
-                  <h3 className="font-display text-sm xl:text-base font-semibold text-slate-100 group-hover:text-amber-300 transition-colors leading-snug mb-1.5">
+                  <h3 className="font-display text-xs sm:text-[13px] xl:text-[14px] font-semibold text-slate-100 group-hover:text-amber-300 transition-colors leading-snug line-clamp-2">
                     {item.headline}
                   </h3>
                 </button>
 
-                {/* Full Executive Summary — Complete Text Without Ellipsis Truncation */}
-                <p className="text-xs xl:text-[13px] text-slate-300/90 leading-relaxed mb-2">
+                {/* Executive Summary — Clamped to 2 lines for zero-scroll wallboard layout */}
+                <p className="text-[11px] sm:text-xs text-slate-300/90 leading-tight sm:leading-snug line-clamp-2 mb-0.5 xl:mb-1">
                   {item.executiveSummary}
                 </p>
 
-                {/* Attribution Row */}
-                <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400 pt-0.5">
-                  <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                    <span className="font-medium text-slate-300 shrink-0">{item.source}</span>
-                    <span aria-hidden="true">·</span>
-                    <span className="font-mono text-amber-400/90 tabular-nums">
+                {/* Attribution & Action Row */}
+                <div className="flex items-center justify-between gap-2 text-[10px] sm:text-[11px] text-slate-400 shrink-0 pt-0.5">
+                  <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 min-w-0">
+                    <span className="font-medium text-slate-300 truncate max-w-[120px] sm:max-w-[160px]">{item.source}</span>
+                    <span aria-hidden="true" className="text-slate-600">·</span>
+                    <span className="font-mono text-amber-400/90 tabular-nums shrink-0">
                       {item.capitalOrScaleLabel}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+                  <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => onSelectItem(item)}
-                      className="px-2 py-1 text-[11px] font-medium text-slate-300 hover:text-amber-300 bg-slate-800/40 hover:bg-slate-800/70 border border-slate-800/60 rounded transition-colors inline-flex items-center gap-1 min-h-[30px] cursor-pointer"
+                      className="px-2 py-0.5 text-[10px] sm:text-[11px] font-medium text-slate-300 hover:text-amber-300 bg-slate-800/40 hover:bg-slate-800/70 border border-slate-800/60 rounded transition-colors inline-flex items-center gap-1 min-h-[24px] sm:min-h-[26px] cursor-pointer"
                     >
                       <span>Brief</span>
-                      <ArrowUpRight className="w-3 h-3" />
+                      <ArrowUpRight className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     </button>
                     <a
                       href={resolveSourceUrl(item)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1.5 text-slate-400 hover:text-slate-100 bg-slate-800/40 hover:bg-slate-800/70 border border-slate-800/60 rounded transition-colors min-h-[30px] min-w-[30px] flex items-center justify-center"
+                      className="p-1 text-slate-400 hover:text-slate-100 bg-slate-800/40 hover:bg-slate-800/70 border border-slate-800/60 rounded transition-colors min-h-[24px] min-w-[24px] sm:min-h-[26px] sm:min-w-[26px] flex items-center justify-center"
                       aria-label={`Open source article from ${item.source}`}
                     >
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     </a>
                   </div>
                 </div>

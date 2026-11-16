@@ -196,7 +196,7 @@ export function GlobalHeatmap({
   };
 
   return (
-    <div className="bg-[#11161E] border border-slate-800/80 rounded-xl p-4 flex flex-col gap-2.5 h-full min-h-0">
+    <div className="bg-[#11161E] border border-slate-800/80 rounded-xl p-3 sm:p-3.5 xl:p-4 flex flex-col gap-1.5 sm:gap-2 h-full min-h-0">
       {/* Map Header */}
       <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
         <div className="flex items-baseline gap-2.5 min-w-0">
@@ -302,7 +302,7 @@ export function GlobalHeatmap({
       </div>
 
       {/* Interactive D3 Map Viewport */}
-      <div className="relative flex-1 min-h-[280px] sm:min-h-[320px] lg:min-h-0 bg-[#090C10] border border-slate-800/70 rounded-lg overflow-hidden map-canvas-container touch-pan-y">
+      <div className="relative flex-1 min-h-[180px] md:min-h-0 bg-[#090C10] border border-slate-800/70 rounded-lg overflow-hidden map-canvas-container touch-pan-y">
         <svg
           ref={svgRef}
           viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}

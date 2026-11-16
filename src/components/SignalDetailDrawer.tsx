@@ -56,7 +56,7 @@ export function SignalDetailDrawer({
           </h2>
 
           <div className="space-y-2">
-            <div className="text-xs font-medium text-amber-400">Executive Summary — Why It Matters</div>
+            <div className="text-xs font-medium text-amber-400">Executive Summary</div>
             <p className="text-sm text-slate-200 leading-relaxed">{item.executiveSummary}</p>
           </div>
 
