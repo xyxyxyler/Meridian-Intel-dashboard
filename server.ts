@@ -963,8 +963,14 @@ async function createApp() {
   const app = express();
   app.use(express.json({ limit: '1mb' }));
 
-  app.get('/api/health', (_req, res) => {
-    res.json({ ok: true, geminiConfigured: Boolean(ai), itemsCount: intelligenceStore.length });
+  app.get(['/api/health', '/health', '/api/ping', '/ping'], (_req, res) => {
+    res.json({
+      ok: true,
+      status: 'healthy',
+      geminiConfigured: Boolean(ai),
+      itemsCount: intelligenceStore.length,
+      lastIngestedAt,
+    });
   });
 
   app.get('/api/sources', (_req, res) => {
@@ -1038,7 +1044,27 @@ async function createApp() {
     res.json({ sources: rssSources });
   });
 
-  app.get('/api/intelligence', (_req, res) => {
+  app.get('/api/intelligence', (req, res) => {
+    const userAgent = (req.headers['user-agent'] || '').toLowerCase();
+    const isCronOrBot =
+      userAgent.includes('cron-job.org') ||
+      userAgent.includes('uptimerobot') ||
+      userAgent.includes('betteruptime') ||
+      userAgent.includes('pingdom') ||
+      userAgent.includes('freshping') ||
+      userAgent.includes('statuscake');
+    const isPing = req.query.ping === 'true' || req.query.keepalive === 'true' || isCronOrBot;
+
+    if (isPing) {
+      res.json({
+        ok: true,
+        status: 'alive',
+        itemsCount: intelligenceStore.length,
+        lastIngestedAt,
+      });
+      return;
+    }
+
     const cutoff30d = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const sorted = intelligenceStore
       .filter((item) => new Date(item.publishedAt).getTime() >= cutoff30d)
