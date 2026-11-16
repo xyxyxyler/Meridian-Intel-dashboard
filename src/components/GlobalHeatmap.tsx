@@ -196,25 +196,25 @@ export function GlobalHeatmap({
   };
 
   return (
-    <div className="bg-[#11161E] border border-slate-800/80 rounded-xl p-3 sm:p-3.5 xl:p-4 flex flex-col gap-1.5 sm:gap-2 h-full min-h-0">
+    <div className="bg-[#11161E] border border-slate-800/80 rounded-xl p-2.5 sm:p-3 xl:p-3.5 flex flex-col gap-1.5 h-full min-h-0">
       {/* Map Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
-        <div className="flex items-baseline gap-2.5 min-w-0">
-          <h2 className="font-display text-base font-semibold text-slate-100 tracking-tight whitespace-nowrap">
+      <div className="flex items-center justify-between gap-2 shrink-0">
+        <div className="flex items-baseline gap-2 min-w-0">
+          <h2 className="font-display text-xs sm:text-sm font-semibold text-slate-100 tracking-tight whitespace-nowrap">
             Global Innovation Heatmap
           </h2>
-          <span className="text-[11px] text-slate-400 truncate hidden xl:inline">
+          <span className="text-[10px] text-slate-400 truncate hidden 2xl:inline">
             Click hub or country to filter
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           {/* Mode Toggle */}
           <div className="flex items-center p-0.5 bg-[#090C10] border border-slate-800 rounded-lg">
             <button
               type="button"
               onClick={() => setMapMode('hotspots')}
-              className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                 mapMode === 'hotspots'
                   ? 'bg-slate-800 text-slate-100'
                   : 'text-slate-400 hover:text-slate-200'
@@ -225,7 +225,7 @@ export function GlobalHeatmap({
             <button
               type="button"
               onClick={() => setMapMode('choropleth')}
-              className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                 mapMode === 'choropleth'
                   ? 'bg-slate-800 text-slate-100'
                   : 'text-slate-400 hover:text-slate-200'
@@ -241,33 +241,33 @@ export function GlobalHeatmap({
               type="button"
               onClick={() => handleZoomStep(1.4)}
               aria-label="Zoom in map"
-              className="p-1.5 text-slate-400 hover:text-slate-100 transition-colors cursor-pointer"
+              className="p-1 text-slate-400 hover:text-slate-100 transition-colors cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
+              <Plus className="w-3 h-3" />
             </button>
             <button
               type="button"
               onClick={() => handleZoomStep(0.72)}
               aria-label="Zoom out map"
-              className="p-1.5 text-slate-400 hover:text-slate-100 border-l border-slate-800 transition-colors cursor-pointer"
+              className="p-1 text-slate-400 hover:text-slate-100 border-l border-slate-800 transition-colors cursor-pointer"
             >
-              <Minus className="w-3.5 h-3.5" />
+              <Minus className="w-3 h-3" />
             </button>
             <button
               type="button"
               onClick={handleResetView}
               aria-label="Reset map view and clear region filter"
               title="Reset to Global View"
-              className="p-1.5 text-slate-400 hover:text-amber-400 border-l border-slate-800 transition-colors cursor-pointer"
+              className="p-1 text-slate-400 hover:text-amber-400 border-l border-slate-800 transition-colors cursor-pointer"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-3 h-3" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Region Quick-Focus Strip */}
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar intel-scroll shrink-0 pb-0.5">
+      {/* Shrunk Region Quick-Focus Strip */}
+      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar intel-scroll shrink-0 py-0.5">
         {REGION_PRESETS.map((preset) => {
           const isActive = selectedRegion === preset.value && !selectedCountry && !selectedHub;
           return (
@@ -275,7 +275,7 @@ export function GlobalHeatmap({
               key={preset.value}
               type="button"
               onClick={() => handleRegionClick(preset)}
-              className={`px-2.5 py-1.5 sm:py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`px-1.5 py-0.5 text-[10px] font-medium rounded transition-colors whitespace-nowrap shrink-0 cursor-pointer leading-tight ${
                 isActive
                   ? 'bg-amber-500/15 text-amber-300 border border-amber-500/40'
                   : 'bg-[#090C10] text-slate-400 border border-slate-800/80 hover:text-slate-200 hover:border-slate-700'
@@ -293,9 +293,9 @@ export function GlobalHeatmap({
               onSelectCountry(null);
               onSelectHub(null, null);
             }}
-            className="ml-auto px-2.5 py-1.5 sm:py-1 text-[11px] font-medium rounded-md bg-amber-500 text-slate-950 hover:bg-amber-400 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1 cursor-pointer"
+            className="ml-auto px-2 py-0.5 text-[10px] font-medium rounded bg-amber-500 text-slate-950 hover:bg-amber-400 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1 cursor-pointer leading-tight"
           >
-            <LocateFixed className="w-3 h-3" />
+            <LocateFixed className="w-2.5 h-2.5" />
             <span>Clear {selectedHub || selectedCountry}</span>
           </button>
         )}
@@ -541,28 +541,28 @@ export function GlobalHeatmap({
       </div>
 
       {/* Compact Legend Footer */}
-      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 shrink-0">
-        <div className="flex flex-wrap items-center gap-3.5">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" aria-hidden="true" />
+      <div className="flex flex-wrap items-center justify-between gap-1.5 text-[10px] text-slate-400 shrink-0 pt-0.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" aria-hidden="true" />
             <span>Banking</span>
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-sky-400 inline-block" aria-hidden="true" />
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block" aria-hidden="true" />
             <span>FinTech</span>
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-indigo-400 inline-block" aria-hidden="true" />
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block" aria-hidden="true" />
             <span>AI</span>
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" aria-hidden="true" />
-            <span>High-Density Peak</span>
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" aria-hidden="true" />
+            <span>High Density</span>
           </span>
         </div>
 
-        <span className="font-mono text-[11px] text-slate-500 tabular-nums">
-          {hubs.length} active hubs · {items.length} mapped signals
+        <span className="font-mono text-[10px] text-slate-500 tabular-nums">
+          {hubs.length} hubs · {items.length} signals
         </span>
       </div>
     </div>

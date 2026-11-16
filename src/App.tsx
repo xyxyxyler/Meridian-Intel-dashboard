@@ -513,14 +513,14 @@ export default function App() {
             </div>
 
             <div
-              className={`min-h-[195px] md:h-[195px] xl:h-[215px] shrink-0 grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-2.5 ${
+              className={`min-h-[175px] md:h-[180px] xl:h-[190px] shrink-0 grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-2.5 ${
                 mobileView === 'feed' ? 'hidden md:grid' : 'grid'
               }`}
             >
               <div
                 className={`${
                   mobileView === 'map' ? 'col-span-full' : 'sm:col-span-7'
-                } min-h-[190px] h-full`}
+                } min-h-[175px] h-full`}
               >
                 <HubLeaderboardCard
                   items={filteredItems}
@@ -531,7 +531,7 @@ export default function App() {
                 />
               </div>
               <div
-                className={`sm:col-span-5 min-h-[190px] h-full ${
+                className={`sm:col-span-5 min-h-[175px] h-full ${
                   mobileView === 'map' ? 'hidden md:block' : 'block'
                 }`}
               >

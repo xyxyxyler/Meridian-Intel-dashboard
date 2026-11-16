@@ -25,9 +25,9 @@ export function HubLeaderboardCard({
   const hubs = useMemo(() => aggregateByHub(items).slice(0, 5), [items]);
 
   return (
-    <div className="bg-[#11161E] border border-slate-800/80 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between gap-1.5 h-full min-h-[190px]">
+    <div className="bg-[#11161E] border border-slate-800/80 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between gap-1 h-full min-h-[175px]">
       <div className="flex items-center justify-between gap-2 shrink-0">
-        <h2 className="font-display text-sm font-semibold text-slate-100">
+        <h2 className="font-display text-xs sm:text-sm font-semibold text-slate-100">
           Regional Hub Activity
         </h2>
         {selectedHub ? (
@@ -129,7 +129,7 @@ export function SectorMixCard({ items }: SectorMixCardProps) {
   }, [items]);
 
   return (
-    <div className="bg-[#11161E] border border-slate-800/80 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between gap-2 h-full min-h-[190px]">
+    <div className="bg-[#11161E] border border-slate-800/80 rounded-xl p-2.5 sm:p-3 flex flex-col justify-between gap-1.5 h-full min-h-[175px]">
       <div className="space-y-2">
         <h2 className="font-display text-sm font-semibold text-slate-100">
           Sector & Catalyst Mix
