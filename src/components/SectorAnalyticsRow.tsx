@@ -76,7 +76,7 @@ export function HubLeaderboardCard({
                       isActive ? 'bg-amber-500/10' : 'hover:bg-slate-800/35'
                     }`}
                   >
-                    <td className="py-1 pr-2 font-medium text-slate-200 whitespace-nowrap truncate max-w-[150px]">
+                    <td className="py-1 pr-2 font-medium text-slate-200 whitespace-nowrap truncate max-w-[110px] sm:max-w-[150px]">
                       {hub.hubCity}
                       <span className="text-slate-500 font-normal ml-1">{hub.country}</span>
                     </td>
@@ -232,12 +232,14 @@ export function ExecutiveSynthesisCard({
           {isLoadingBriefing ? (
             <>
               <Loader2 className="w-3 h-3 animate-spin" />
-              <span>Synthesizing...</span>
+              <span className="hidden sm:inline">Synthesizing...</span>
+              <span className="inline sm:hidden">AI...</span>
             </>
           ) : (
             <>
               <Sparkles className="w-3 h-3" />
-              <span>Synthesize Briefing</span>
+              <span className="hidden sm:inline">Synthesize Briefing</span>
+              <span className="inline sm:hidden">Synthesize</span>
             </>
           )}
         </button>

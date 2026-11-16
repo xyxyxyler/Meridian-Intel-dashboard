@@ -24,7 +24,7 @@ export function SignalDetailDrawer({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg bg-[#11161E] border-l border-slate-800 h-full overflow-y-auto p-6 flex flex-col justify-between gap-6"
+        className="w-full max-w-lg bg-[#11161E] border-l border-slate-800 h-full overflow-y-auto p-4 sm:p-6 flex flex-col justify-between gap-6 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="space-y-5">
@@ -97,14 +97,14 @@ export function SignalDetailDrawer({
           )}
         </div>
 
-        <div className="pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div className="pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
           <button
             type="button"
             onClick={() => {
               onFilterByHub(item.hubCity, item.country);
               onClose();
             }}
-            className="px-4 py-2 text-xs font-medium bg-slate-800 text-slate-100 rounded-lg hover:bg-slate-700 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+            className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-xs font-medium bg-slate-800 text-slate-100 rounded-lg hover:bg-slate-700 transition-colors inline-flex items-center justify-center gap-1.5 min-h-[40px] cursor-pointer"
           >
             <Globe2 className="w-3.5 h-3.5 text-amber-400" />
             <span>Filter Dashboard to {item.hubCity}</span>
@@ -114,7 +114,7 @@ export function SignalDetailDrawer({
             href={resolveSourceUrl(item)}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-2 text-xs font-medium bg-amber-500 text-slate-950 rounded-lg hover:bg-amber-400 transition-colors inline-flex items-center gap-1.5"
+            className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-xs font-semibold bg-amber-500 text-slate-950 rounded-lg hover:bg-amber-400 transition-colors inline-flex items-center justify-center gap-1.5 min-h-[40px]"
           >
             <span>Read Original Source</span>
             <ExternalLink className="w-3.5 h-3.5" />

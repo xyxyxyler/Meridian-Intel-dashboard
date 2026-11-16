@@ -316,12 +316,12 @@ export function ControlDrawer({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drawer Header */}
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between gap-4 shrink-0">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-800 flex items-center justify-between gap-4 shrink-0">
           <div>
-            <h2 className="font-display text-lg font-semibold text-slate-100 tracking-tight">
+            <h2 className="font-display text-base sm:text-lg font-semibold text-slate-100 tracking-tight">
               Control Center
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-[11px] sm:text-xs text-slate-400">
               Display preferences, news source endpoints, and API directory
             </p>
           </div>
@@ -329,14 +329,14 @@ export function ControlDrawer({
             type="button"
             onClick={onClose}
             aria-label="Close control drawer"
-            className="p-2 text-slate-400 hover:text-slate-100 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-slate-400 hover:text-slate-100 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Drawer Tabs */}
-        <div className="px-6 pt-3 border-b border-slate-800 flex items-center gap-6 text-xs font-medium shrink-0">
+        <div className="px-4 sm:px-6 pt-3 border-b border-slate-800 flex items-center gap-4 sm:gap-6 text-xs font-medium shrink-0 overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => setActiveTab('settings')}
@@ -378,7 +378,7 @@ export function ControlDrawer({
         </div>
 
         {/* Scrollable Drawer Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6 intel-scroll">
+        <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-5 sm:space-y-6 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] intel-scroll">
           {activeTab === 'settings' && (
             <div className="space-y-6">
               {/* Theme & Color Scheme */}

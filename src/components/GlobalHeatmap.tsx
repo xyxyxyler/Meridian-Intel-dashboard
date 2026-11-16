@@ -142,6 +142,15 @@ export function GlobalHeatmap({
         [-100, -60],
         [SVG_WIDTH + 100, SVG_HEIGHT + 60],
       ])
+      .filter((event: MouseEvent | TouchEvent | WheelEvent) => {
+        // Allow wheel zoom
+        if (event.type === 'wheel') return true;
+        // Allow mouse drag (left click)
+        if (event.type === 'mousedown') return (event as MouseEvent).button === 0;
+        // On touch screens, require pinch-to-zoom (2+ touches) so single finger can scroll the page
+        if ('touches' in event) return (event as TouchEvent).touches.length > 1;
+        return false;
+      })
       .on('zoom', (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
         setTransform(event.transform);
       });
@@ -258,7 +267,7 @@ export function GlobalHeatmap({
       </div>
 
       {/* Region Quick-Focus Strip */}
-      <div className="flex items-center gap-1.5 overflow-x-auto intel-scroll shrink-0">
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar intel-scroll shrink-0 pb-0.5">
         {REGION_PRESETS.map((preset) => {
           const isActive = selectedRegion === preset.value && !selectedCountry && !selectedHub;
           return (
@@ -266,7 +275,7 @@ export function GlobalHeatmap({
               key={preset.value}
               type="button"
               onClick={() => handleRegionClick(preset)}
-              className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              className={`px-2.5 py-1.5 sm:py-1 text-[11px] font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                 isActive
                   ? 'bg-amber-500/15 text-amber-300 border border-amber-500/40'
                   : 'bg-[#090C10] text-slate-400 border border-slate-800/80 hover:text-slate-200 hover:border-slate-700'
@@ -284,7 +293,7 @@ export function GlobalHeatmap({
               onSelectCountry(null);
               onSelectHub(null, null);
             }}
-            className="ml-auto px-2.5 py-1 text-[11px] font-medium rounded-md bg-amber-500 text-slate-950 hover:bg-amber-400 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1 cursor-pointer"
+            className="ml-auto px-2.5 py-1.5 sm:py-1 text-[11px] font-medium rounded-md bg-amber-500 text-slate-950 hover:bg-amber-400 transition-colors whitespace-nowrap shrink-0 flex items-center gap-1 cursor-pointer"
           >
             <LocateFixed className="w-3 h-3" />
             <span>Clear {selectedHub || selectedCountry}</span>
@@ -293,12 +302,12 @@ export function GlobalHeatmap({
       </div>
 
       {/* Interactive D3 Map Viewport */}
-      <div className="relative flex-1 min-h-[260px] lg:min-h-0 bg-[#090C10] border border-slate-800/70 rounded-lg overflow-hidden map-canvas-container">
+      <div className="relative flex-1 min-h-[280px] sm:min-h-[320px] lg:min-h-0 bg-[#090C10] border border-slate-800/70 rounded-lg overflow-hidden map-canvas-container touch-pan-y">
         <svg
           ref={svgRef}
           viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
           preserveAspectRatio="xMidYMid meet"
-          className="w-full h-full select-none cursor-grab active:cursor-grabbing"
+          className="w-full h-full select-none cursor-grab active:cursor-grabbing touch-pan-y"
           role="img"
           aria-label="Interactive global innovation heatmap across Banking, FinTech, and AI hubs"
         >

@@ -103,7 +103,7 @@ export function IntelligenceFeed({
                 type="button"
                 onClick={() => setPage((prev) => (prev - 1 + totalPages) % totalPages)}
                 aria-label="Previous intelligence page"
-                className="p-1 text-slate-400 hover:text-slate-100 cursor-pointer"
+                className="p-1.5 min-w-[28px] min-h-[28px] flex items-center justify-center text-slate-400 hover:text-slate-100 cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
@@ -114,7 +114,7 @@ export function IntelligenceFeed({
                 type="button"
                 onClick={() => setPage((prev) => (prev + 1) % totalPages)}
                 aria-label="Next intelligence page"
-                className="p-1 text-slate-400 hover:text-slate-100 cursor-pointer"
+                className="p-1.5 min-w-[28px] min-h-[28px] flex items-center justify-center text-slate-400 hover:text-slate-100 cursor-pointer"
               >
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
@@ -207,11 +207,11 @@ export function IntelligenceFeed({
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2.5 shrink-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
                     <button
                       type="button"
                       onClick={() => onSelectItem(item)}
-                      className="text-[11px] font-medium text-slate-300 hover:text-amber-300 transition-colors inline-flex items-center gap-0.5 cursor-pointer"
+                      className="px-2 py-1 text-[11px] font-medium text-slate-300 hover:text-amber-300 bg-slate-800/40 hover:bg-slate-800/70 border border-slate-800/60 rounded transition-colors inline-flex items-center gap-1 min-h-[30px] cursor-pointer"
                     >
                       <span>Brief</span>
                       <ArrowUpRight className="w-3 h-3" />
@@ -220,10 +220,10 @@ export function IntelligenceFeed({
                       href={resolveSourceUrl(item)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-slate-500 hover:text-slate-200 transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-slate-100 bg-slate-800/40 hover:bg-slate-800/70 border border-slate-800/60 rounded transition-colors min-h-[30px] min-w-[30px] flex items-center justify-center"
                       aria-label={`Open source article from ${item.source}`}
                     >
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-3.5 h-3.5" />
                     </a>
                   </div>
                 </div>

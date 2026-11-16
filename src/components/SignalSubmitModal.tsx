@@ -97,7 +97,7 @@ export function SignalSubmitModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl bg-[#11161E] border border-slate-800 rounded-xl p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto intel-scroll"
+        className="w-full max-w-xl bg-[#11161E] border border-slate-800 rounded-xl p-4 sm:p-6 space-y-5 shadow-2xl max-h-[90dvh] overflow-y-auto intel-scroll pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
@@ -245,18 +245,18 @@ export function SignalSubmitModal({
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-3 pt-2">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+              className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors cursor-pointer text-center"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isAnalyzing}
-              className="px-4 py-2 text-xs font-medium bg-amber-500 text-slate-950 rounded-lg hover:bg-amber-400 disabled:opacity-50 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2 text-xs font-medium bg-amber-500 text-slate-950 rounded-lg hover:bg-amber-400 disabled:opacity-50 transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer min-h-[38px]"
             >
               {isAnalyzing ? (
                 <>

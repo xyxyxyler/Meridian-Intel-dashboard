@@ -47,21 +47,45 @@
     font-family: var(--font-sans);
     background-color: var(--color-canvas-bg);
     color: var(--color-text-primary);
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
     background-color: var(--color-canvas-bg);
     color: var(--color-text-primary);
-    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-wrap: anywhere;
   }
 
   h1, h2, h3, .font-display {
     font-family: var(--font-display);
+    text-wrap: balance;
+  }
+
+  p, li {
+    text-wrap: pretty;
   }
 }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+/* Hide scrollbars on horizontal swipe rails while keeping touch scrolling functional */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Safe area insets for notches, island, and home indicator bars */
+.safe-pb {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+.safe-pt {
+  padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
 }
 
 /* Custom subtle scrollbars */
