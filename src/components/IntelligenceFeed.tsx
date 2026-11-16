@@ -158,47 +158,50 @@ export function IntelligenceFeed({
             return (
               <article
                 key={item.id}
-                className={`py-1 sm:py-1.5 xl:py-2 first:pt-0.5 last:pb-0.5 flex-1 min-h-[88px] xl:min-h-[96px] flex flex-col justify-between transition-colors rounded-lg px-2 -mx-1 shrink ${
+                className={`py-2 first:pt-1 last:pb-1 flex-1 min-h-[105px] xl:min-h-[115px] flex flex-col justify-between transition-colors rounded-lg px-2 -mx-1 shrink ${
                   isSelected ? 'bg-slate-800/45' : 'hover:bg-slate-800/25'
                 }`}
               >
-                {/* Unboxed Metadata Row */}
-                <div className="flex items-center justify-between gap-2 text-[10px] sm:text-[11px] text-slate-400 shrink-0">
-                  <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 min-w-0">
-                    <span className={`font-semibold ${SECTOR_COLORS[item.sector].text}`}>
-                      {item.sector}
-                    </span>
-                    <span aria-hidden="true" className="text-slate-600">·</span>
-                    <span className="text-slate-300 font-medium">{item.eventType}</span>
-                    <span aria-hidden="true" className="text-slate-600">·</span>
-                    <span className="inline-flex items-center gap-1 text-slate-400 truncate">
-                      <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-500 shrink-0" aria-hidden="true" />
-                      <span className="truncate">{item.hubCity}, {item.country}</span>
+                {/* Content Block: Metadata + Headline + Summary */}
+                <div className="flex-1 min-h-0 flex flex-col justify-start">
+                  {/* Unboxed Metadata Row */}
+                  <div className="flex items-center justify-between gap-2 text-[10px] sm:text-[11px] text-slate-400 mb-1 shrink-0">
+                    <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 min-w-0">
+                      <span className={`font-semibold ${SECTOR_COLORS[item.sector].text}`}>
+                        {item.sector}
+                      </span>
+                      <span aria-hidden="true" className="text-slate-600">·</span>
+                      <span className="text-slate-300 font-medium">{item.eventType}</span>
+                      <span aria-hidden="true" className="text-slate-600">·</span>
+                      <span className="inline-flex items-center gap-1 text-slate-400 truncate">
+                        <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-500 shrink-0" aria-hidden="true" />
+                        <span className="truncate">{item.hubCity}, {item.country}</span>
+                      </span>
+                    </div>
+                    <span className="font-mono text-[10px] sm:text-[11px] text-slate-500 tabular-nums shrink-0">
+                      {formatRelativeTime(item.publishedAt)}
                     </span>
                   </div>
-                  <span className="font-mono text-[10px] sm:text-[11px] text-slate-500 tabular-nums shrink-0">
-                    {formatRelativeTime(item.publishedAt)}
-                  </span>
+
+                  {/* Headline */}
+                  <button
+                    type="button"
+                    onClick={() => onSelectItem(item)}
+                    className="text-left group w-full cursor-pointer mb-1"
+                  >
+                    <h3 className="font-display text-xs sm:text-[13px] xl:text-[14.5px] font-semibold text-slate-100 group-hover:text-amber-300 transition-colors leading-snug line-clamp-2">
+                      {item.headline}
+                    </h3>
+                  </button>
+
+                  {/* Executive Summary */}
+                  <p className="text-[11px] sm:text-xs text-slate-300/90 leading-relaxed line-clamp-2">
+                    {item.executiveSummary}
+                  </p>
                 </div>
 
-                {/* Headline — Clamped to 2 lines for guaranteed wallboard display fit */}
-                <button
-                  type="button"
-                  onClick={() => onSelectItem(item)}
-                  className="text-left group w-full cursor-pointer my-0.5"
-                >
-                  <h3 className="font-display text-xs sm:text-[13px] xl:text-[14px] font-semibold text-slate-100 group-hover:text-amber-300 transition-colors leading-snug line-clamp-2">
-                    {item.headline}
-                  </h3>
-                </button>
-
-                {/* Executive Summary — Clamped to 2 lines for zero-scroll wallboard layout */}
-                <p className="text-[11px] sm:text-xs text-slate-300/90 leading-tight sm:leading-snug line-clamp-2 mb-0.5 xl:mb-1">
-                  {item.executiveSummary}
-                </p>
-
                 {/* Attribution & Action Row */}
-                <div className="flex items-center justify-between gap-2 text-[10px] sm:text-[11px] text-slate-400 shrink-0 pt-0.5">
+                <div className="flex items-center justify-between gap-2 text-[10px] sm:text-[11px] text-slate-400 shrink-0 pt-1.5 border-t border-slate-800/30">
                   <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 min-w-0">
                     <span className="font-medium text-slate-300 truncate max-w-[120px] sm:max-w-[160px]">{item.source}</span>
                     <span aria-hidden="true" className="text-slate-600">·</span>

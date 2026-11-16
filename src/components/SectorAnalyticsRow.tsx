@@ -213,67 +213,58 @@ export function ExecutiveSynthesisCard({
   };
 
   return (
-    <div className="bg-[#11161E] border border-slate-800/80 rounded-xl p-3 sm:p-3.5 flex flex-col justify-between gap-1.5 sm:gap-2 h-full min-h-[160px]">
+    <div className="bg-[#11161E] border border-slate-800/80 rounded-xl p-2.5 sm:px-3.5 sm:py-2 flex flex-col justify-between gap-1.5 h-full min-h-[105px]">
       <div className="flex items-center justify-between gap-2 shrink-0">
         <div className="min-w-0">
-          <h2 className="font-display text-sm font-semibold text-slate-100">
-            AI Executive Synthesis
+          <h2 className="font-display text-xs sm:text-sm font-semibold text-slate-100 flex items-center gap-1.5">
+            <span>AI Executive Synthesis</span>
+            <span className="text-[10px] font-normal text-slate-400 hidden sm:inline truncate max-w-[150px] xl:max-w-[200px]" title={activeScopeLabel}>
+              ({activeScopeLabel})
+            </span>
           </h2>
-          <p className="text-[11px] text-slate-400 truncate" title={activeScopeLabel}>
-            Scope: {activeScopeLabel}
-          </p>
         </div>
         <button
           type="button"
           onClick={handleGenerateBriefing}
           disabled={isLoadingBriefing || items.length === 0}
-          className="px-3 py-1.5 text-[11px] font-medium bg-amber-500 text-slate-950 rounded-lg hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-1.5 whitespace-nowrap shrink-0 cursor-pointer"
+          className="px-2.5 py-1 text-[10px] sm:text-[11px] font-medium bg-amber-500 text-slate-950 rounded-lg hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors inline-flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer min-h-[26px]"
         >
           {isLoadingBriefing ? (
             <>
               <Loader2 className="w-3 h-3 animate-spin" />
-              <span className="hidden sm:inline">Synthesizing...</span>
-              <span className="inline sm:hidden">AI...</span>
+              <span>Synthesizing...</span>
             </>
           ) : (
             <>
               <Sparkles className="w-3 h-3" />
-              <span className="hidden sm:inline">Synthesize Briefing</span>
-              <span className="inline sm:hidden">Synthesize</span>
+              <span>Synthesize Briefing</span>
             </>
           )}
         </button>
       </div>
 
       {briefingError && (
-        <div className="p-2 rounded-lg bg-rose-950/40 border border-rose-800/60 text-[11px] text-rose-200">
+        <div className="p-1.5 rounded-lg bg-rose-950/40 border border-rose-800/60 text-[10px] text-rose-200">
           {briefingError}
         </div>
       )}
 
       {briefing ? (
-        <div className="flex-1 min-h-0 overflow-y-auto intel-scroll space-y-2 text-xs leading-snug pr-1">
+        <div className="flex-1 min-h-0 overflow-y-auto intel-scroll space-y-1 text-[11px] leading-snug pr-1">
           <p className="text-slate-200">
             <span className="font-semibold text-amber-300">Thesis: </span>
             {briefing.strategicThesis}
           </p>
-          <ul className="space-y-0.5 text-[11px] text-slate-300 list-disc pl-4">
-            {briefing.keySignals.slice(0, 3).map((sig, i) => (
+          <ul className="space-y-0.5 text-[10px] text-slate-300 list-disc pl-3">
+            {briefing.keySignals.slice(0, 2).map((sig, i) => (
               <li key={i}>{sig}</li>
             ))}
           </ul>
-          <div className="text-[11px] text-slate-400">
-            Watchlist: {briefing.priorityWatchlist.join(' · ')}
-          </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col justify-center text-xs text-slate-400 space-y-1.5">
-          <p className="text-slate-300 leading-relaxed">
-            Synthesize a real-time strategic briefing with Gemini across the {items.length}{' '}
-            filtered signals in {activeScopeLabel}.
-          </p>
-          <p className="text-[11px] text-slate-500">
-            Select any region or vertical to tailor capital allocation and regulatory insights.
+        <div className="flex-1 min-h-0 flex items-center text-[11px] text-slate-400">
+          <p className="text-slate-300 leading-snug line-clamp-2">
+            Synthesize real-time strategic intelligence across {items.length} signals in {activeScopeLabel} with Gemini.
           </p>
         </div>
       )}

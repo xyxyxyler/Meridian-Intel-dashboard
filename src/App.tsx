@@ -563,7 +563,7 @@ export default function App() {
             </div>
 
             <div
-              className={`min-h-[160px] md:h-[165px] xl:h-[185px] shrink-0 ${
+              className={`min-h-[105px] md:h-[110px] xl:h-[120px] shrink-0 ${
                 mobileView === 'map' ? 'hidden md:block' : 'block'
               }`}
             >
