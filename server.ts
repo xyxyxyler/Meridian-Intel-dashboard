@@ -40,6 +40,9 @@ const rssParser = new Parser({
   headers: {
     'User-Agent': 'MeridianIntel/1.0 (+Executive Intelligence Aggregator)',
   },
+  customFields: {
+    item: ['source', ['dc:creator', 'creator']],
+  },
 });
 
 const BASE_RSS_SOURCES: NewsSourceEndpoint[] = [
@@ -240,7 +243,7 @@ const BASE_RSS_SOURCES: NewsSourceEndpoint[] = [
     name: 'Ghana Business & Financial Times (B&FT)',
     region: 'Africa',
     scope: 'Local',
-    url: 'https://news.google.com/rss/search?q=site:thebftonline.com+(banking+OR+fintech+OR+AI+OR+economy+OR+investment)&hl=en-GH&gl=GH&ceid=GH:en',
+    url: 'https://news.google.com/rss/search?q=site:thebftonline.com+(banking+OR+fintech+OR+%22mobile+money%22+OR+%22Bank+of+Ghana%22)&hl=en-US&gl=US&ceid=US:en',
     defaultSector: 'Banking',
   },
   {
@@ -248,7 +251,7 @@ const BASE_RSS_SOURCES: NewsSourceEndpoint[] = [
     name: 'Citi Business News (Ghana)',
     region: 'Africa',
     scope: 'Local',
-    url: 'https://news.google.com/rss/search?q=site:citinewsroom.com+(banking+OR+fintech+OR+AI+OR+business)&hl=en-GH&gl=GH&ceid=GH:en',
+    url: 'https://news.google.com/rss/search?q=site:citinewsroom.com+(fintech+OR+%22mobile+money%22+OR+%22commercial+bank%22+OR+%22digital+banking%22+OR+%22e-cedi%22)&hl=en-US&gl=US&ceid=US:en',
     defaultSector: 'FinTech',
   },
   {
@@ -256,7 +259,7 @@ const BASE_RSS_SOURCES: NewsSourceEndpoint[] = [
     name: 'MyJoyOnline Business & Tech (Ghana)',
     region: 'Africa',
     scope: 'Local',
-    url: 'https://news.google.com/rss/search?q=site:myjoyonline.com+(business+OR+technology+OR+banking+OR+fintech)&hl=en-GH&gl=GH&ceid=GH:en',
+    url: 'https://news.google.com/rss/search?q=site:myjoyonline.com+(fintech+OR+%22commercial+bank%22+OR+%22mobile+money%22+OR+%22digital+banking%22+OR+%22artificial+intelligence%22)&hl=en-US&gl=US&ceid=US:en',
     defaultSector: 'AI',
   },
   {
@@ -264,7 +267,7 @@ const BASE_RSS_SOURCES: NewsSourceEndpoint[] = [
     name: 'Ghana FinTech & Bank of Ghana Wire',
     region: 'Africa',
     scope: 'Local',
-    url: 'https://news.google.com/rss/search?q=Ghana+(%22Bank+of+Ghana%22+OR+fintech+OR+Telecel+OR+%22MTN+MoMo%22+OR+%22eCedi%22+OR+%22mobile+money%22)&hl=en-GH&gl=GH&ceid=GH:en',
+    url: 'https://news.google.com/rss/search?q=Ghana+(fintech+OR+%22mobile+money%22+OR+%22eCedi%22+OR+%22e-cedi%22+OR+%22GhIPSS%22+OR+(%22Bank+of+Ghana%22+AND+(fintech+OR+banking+OR+payments)))&hl=en-US&gl=US&ceid=US:en',
     defaultSector: 'FinTech',
   },
 ];
@@ -276,7 +279,9 @@ let rssSources: NewsSourceEndpoint[] = BASE_RSS_SOURCES.map((source) => ({
 }));
 
 // In-memory intelligence store (initialized with verified baseline, enriched by live RSS + Gemini)
-let intelligenceStore: IntelligenceItem[] = [...BASELINE_INTELLIGENCE];
+let intelligenceStore: IntelligenceItem[] = BASELINE_INTELLIGENCE.filter((item) =>
+  isExecutiveRelevant(item.headline, item.executiveSummary)
+);
 let lastIngestedAt = new Date().toISOString();
 let liveFeedCount = 0;
 let activeRssFeedCount = 0;
@@ -293,6 +298,92 @@ interface RawRssArticle {
 
 function normalizeHeadline(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 64);
+}
+
+function extractSourceAndCleanHeadline(
+  rawHeadline: string,
+  entrySource?: unknown,
+  feedName?: string
+): { cleanHeadline: string; sourcePublisher: string } {
+  let cleanHeadline = (rawHeadline || '').trim();
+  let sourcePublisher = '';
+
+  // 1. Check entrySource from RSS item (could be string or object with _ or title)
+  if (typeof entrySource === 'string' && entrySource.trim()) {
+    sourcePublisher = entrySource.trim().replace(/\.com$/i, '').replace(/^www\./i, '');
+  } else if (entrySource && typeof entrySource === 'object') {
+    const obj = entrySource as Record<string, unknown>;
+    const textVal = String(obj._ || obj['#text'] || obj.title || obj.name || '');
+    if (textVal.trim()) {
+      sourcePublisher = textVal.trim().replace(/\.com$/i, '').replace(/^www\./i, '');
+    }
+  }
+
+  // 2. Google News & aggregator standard format: "Headline Text - Publisher Name"
+  const trailingDashMatch = cleanHeadline.match(/^(.*?)\s+[-–—]\s+([^-–—]+)$/);
+  if (trailingDashMatch) {
+    const trailingPublisher = trailingDashMatch[2].trim();
+    if (!sourcePublisher || sourcePublisher === feedName) {
+      sourcePublisher = trailingPublisher.replace(/\.com$/i, '').replace(/^www\./i, '');
+    }
+    cleanHeadline = trailingDashMatch[1].trim();
+  }
+
+  // 3. Fallback to clean feedName if no publisher found (remove parenthetical scopes e.g. "TechCabal (Pan-Africa)" -> "TechCabal")
+  if (!sourcePublisher && feedName) {
+    sourcePublisher = feedName.replace(/\s*\([^)]*\)/g, '').trim();
+  }
+
+  cleanHeadline = cleanHeadline.replace(/\s+-\s+.*$/, '').trim();
+
+  return { cleanHeadline, sourcePublisher: sourcePublisher || 'Institutional Wire' };
+}
+
+function isExecutiveRelevant(headline: string, snippet: string = ''): boolean {
+  const text = `${headline} ${snippet}`.toLowerCase();
+
+  // 1. Negative exclusion filter: drop non-financial/off-topic domains immediately
+  const negativeRegex =
+    /\b(cocoa|crop|crops|harvest|farming|farmer|farmers|livestock|fertilizer|fertilizers|food prices|food inflation|el ni[ñn]o|tomato|tomatoes|onion|maize|poultry|grain|cassava|showbiz|celebrity|celebrities|gossip|affair|mistress|spy|parliamentary|aspirant|aspirants|constituency|elections?|presidential candidate|ndc|npp|ballot|campaign rally|running mate|party chairman|football|soccer|premier league|black stars|afcon|fifa|stadium|coach|gas power plant|oil drilling|crude oil|bauxite mining|refinery|fuel prices|transport fares|cement prices|founder summit|doors open at|summit agenda|homework|school students|k-12|tutor|tutors|kindergarten|fashion week|movie review|horoscope|volkswagen|car manufacturing)\b/i;
+  if (negativeRegex.test(text)) {
+    return false;
+  }
+
+  // 2. Banknote cosmetic/portrait controversy or general consumer complaints
+  if (
+    /\b(portrait|banknote designs?|reverse designs?|quite shameful|mc yaa|heritage series banknotes?|numismatic)\b/i.test(
+      text
+    )
+  ) {
+    return false;
+  }
+
+  // 3. Positive inclusion criteria: must meaningfully relate to FinTech, Banking, or AI
+  const fintechRegex =
+    /\b(fintech|payments?|wallets?|remittances?|cross-border|settlements?|stablecoins?|crypto|tokeniz|defi|neobanks?|paystack|flutterwave|stripe|m-pesa|mobile money|momo|wave|qr code|pos terminal|open banking|digital lending|underwriting|credit card|interswitch|ghipss|e-?cedi|cbdc|clearinghouse|venture capital|fintech fund|investors?|exits?|venture|liquidity facility)\b/i;
+  const bankingRegex =
+    /\b(banks?|banking|banker|lenders?|central banks?|reserve banks?|monetary policy|liquidity|treasury|interest rates?|deposits?|loans?|credit access|capital adequacy|basel|m&a|merger|acquisition|takeover|sarb|cbk|cbe|cbn|bog|bceao|fca|sec|ecb|fdic|occ|revolut|barclays|absa|standard chartered|standard bank|capitec|tymebank|kifc|crdb|nmb|goldman|jpmorgan|citi|difc|private wealth|wealth management|sovereign wealth)\b/i;
+  const aiRegex =
+    /\b(ai|artificial intelligence|generative ai|agentic|llms?|neural|machine learning|deep learning|copilots?|chatgpt|openai|anthropic|nvidia|compute|chips? export|semiconductors?|foundation models?|model weights|autonomous agents?)\b/i;
+
+  return fintechRegex.test(text) || bankingRegex.test(text) || aiRegex.test(text);
+}
+
+function inferTechnologyTag(text: string, sector: Sector): string {
+  if (/\b(agentic|ai agent|autonomous agent|copilot)\b/i.test(text)) return 'Agentic AI';
+  if (/\b(generative ai|llm|foundation model|chatgpt|openai|claude|gemini)\b/i.test(text)) return 'Generative AI';
+  if (/\b(chip|semiconductor|gpu|compute|datacenter|nvidia)\b/i.test(text)) return 'Compute Infrastructure';
+  if (/\b(underwriting|credit scoring|algorithmic underwriting|risk model)\b/i.test(text)) return 'Predictive Underwriting';
+  if (/\b(stablecoin|crypto|tokeniz|dlt|blockchain|cbdc|e-?cedi|bakong|bitcoin|ethereum)\b/i.test(text)) return 'Digital Assets & DLT';
+  if (/\b(cross-border|remittance|instant payment|real-time payment|payment rail|m-pesa|mobile money|momo|wave|switch|ghipss|clearing|settlement|visa|mastercard|pos terminal)\b/i.test(text)) return 'Payment Rails';
+  if (/\b(cybersecurity|fraud|phishing|aml|kyc|identity|biometric)\b/i.test(text)) return 'Cybersecurity & Fraud';
+  if (/\b(central bank|regulat|monetary policy|interest rate|guidance|compliance|licens|reserve bank|basel)\b/i.test(text)) return 'Prudential Regulation';
+  if (/\b(m&a|merger|acquisition|takeover|debt facility|equity|capital raise|series [a-z]|valuation)\b/i.test(text)) return 'M&A & Capital Markets';
+  if (/\b(core banking|modernization|digital banking|cloud banking|neobank)\b/i.test(text)) return 'Core Modernization';
+
+  if (sector === 'AI') return 'Enterprise AI';
+  if (sector === 'Banking') return 'Commercial Banking';
+  return 'Financial Infrastructure';
 }
 
 async function fetchGNewsPanAfricaArticles(): Promise<RawRssArticle[]> {
@@ -338,15 +429,25 @@ async function fetchGNewsPanAfricaArticles(): Promise<RawRssArticle[]> {
         const normUrl = article.url.trim().toLowerCase();
         const normTitle = normalizeHeadline(article.title);
         if (seenUrls.has(normUrl) || seenTitles.has(normTitle)) continue;
+
+        const snippet = (article.description || article.content || article.title).replace(/\s+/g, ' ').trim().slice(0, 480);
+        const { cleanHeadline, sourcePublisher } = extractSourceAndCleanHeadline(
+          article.title,
+          article.source?.name,
+          'Pan-Africa Financial Wire'
+        );
+
+        if (!isExecutiveRelevant(cleanHeadline, snippet)) continue;
+
         seenUrls.add(normUrl);
         seenTitles.add(normTitle);
 
         results.push({
-          headline: article.title.trim(),
-          source: article.source?.name ? `GNews / ${article.source.name}` : 'GNews Pan-Africa',
+          headline: cleanHeadline,
+          source: sourcePublisher,
           url: article.url.trim(),
           publishedAt: article.publishedAt || new Date().toISOString(),
-          snippet: (article.description || article.content || article.title).replace(/\s+/g, ' ').trim().slice(0, 480),
+          snippet,
           defaultSector: 'FinTech',
           sourceRegion: 'Africa',
         });
@@ -371,23 +472,29 @@ async function fetchRssArticles(
   const results = await Promise.allSettled(
     feedsToPoll.map(async (feed) => {
       const parsed = await rssParser.parseURL(feed.url);
-      const items = (parsed.items || []).slice(0, 3).map((entry) => {
-        const headline = (entry.title || '').trim();
+      const items = (parsed.items || []).slice(0, 4).map((entry) => {
+        const rawHeadline = (entry.title || '').trim();
+        const { cleanHeadline, sourcePublisher } = extractSourceAndCleanHeadline(
+          rawHeadline,
+          (entry as Record<string, unknown>).source,
+          feed.name
+        );
         let rawLink = (entry.link || '').trim();
         if (!rawLink || rawLink.endsWith('/feed/') || rawLink.endsWith('/feed')) {
-          rawLink = `https://www.google.com/search?q=${encodeURIComponent(`${feed.name} ${headline}`)}`;
+          rawLink = `https://www.google.com/search?q=${encodeURIComponent(`${sourcePublisher} ${cleanHeadline}`)}`;
         }
+        const snippet = (entry.contentSnippet || entry.content || '').replace(/\s+/g, ' ').trim().slice(0, 480);
         return {
-          headline,
-          source: feed.name,
+          headline: cleanHeadline,
+          source: sourcePublisher,
           url: rawLink,
           publishedAt: entry.isoDate ? new Date(entry.isoDate).toISOString() : new Date().toISOString(),
-          snippet: (entry.contentSnippet || entry.content || '').replace(/\s+/g, ' ').trim().slice(0, 480),
+          snippet,
           defaultSector: feed.defaultSector,
           sourceRegion: feed.region,
         };
       });
-      return items.filter((i) => i.headline.length > 15);
+      return items.filter((i) => i.headline.length > 15 && isExecutiveRelevant(i.headline, i.snippet));
     })
   );
 
@@ -426,7 +533,7 @@ Articles to analyze:
 ${JSON.stringify(promptPayload)}`,
     config: {
       systemInstruction:
-        'You are a senior financial and technology intelligence analyst. Output strictly valid JSON matching the schema. Keep executiveSummary to 2-3 incisive, institutional-grade sentences explaining strategic impact. Classify Australia and New Zealand under region "Oceania". For pan-African developments, accurately assign the proper hub, country, and coordinates: Kenya (Nairobi: lat -1.2921, lng 36.8219), South Africa (Johannesburg: lat -26.2041, lng 28.0473 or Cape Town), Egypt (Cairo: lat 30.0444, lng 31.2357), Rwanda (Kigali: lat -1.9441, lng 30.0619), Senegal (Dakar: lat 14.7167, lng -17.4677), Côte d\'Ivoire (Abidjan: lat 5.3600, lng -4.0083), Tanzania (Dar es Salaam: lat -6.7924, lng 39.2083), Uganda (Kampala: lat 0.3476, lng 32.5825), Morocco (Casablanca: lat 33.5731, lng -7.5898), Nigeria (Lagos: lat 6.5244, lng 3.3792), Ghana (Accra: lat 5.6037, lng -0.1870). Ensure lat/lng accurately correspond to hubCity and countryNameMatch matches standard English country names (e.g., "United States of America", "United Kingdom", "Germany", "Singapore", "Japan", "France", "Switzerland", "United Arab Emirates", "Brazil", "Colombia", "Mexico", "India", "Canada", "China", "South Korea", "Sweden", "Australia", "New Zealand", "Nigeria", "Kenya", "South Africa", "Egypt", "Rwanda", "Senegal", "Tanzania", "Uganda", "Morocco", "Ghana").',
+        'You are a senior financial and technology intelligence analyst. Output strictly valid JSON matching the schema. Strict relevance requirement: set relevant to true ONLY if the item directly concerns Banking (commercial, retail, central banking, monetary policy, balance sheets, lending, capital markets), FinTech (digital payments, remittances, mobile money, switches, stablecoins, tokenization, open banking), or Enterprise/Frontier AI (LLMs, autonomous agents, AI compute, chips, credit models). Set relevant to false for off-topic general business or news including agriculture/crops/cocoa/farming, food inflation, weather/climate/El Niño, partisan politics/elections, celebrity gossip/scandals, conference schedules/opening hours, or general automotive/industrial manufacturing. Keep executiveSummary to 2-3 incisive, institutional-grade sentences explaining strategic impact. Classify Australia and New Zealand under region "Oceania". For pan-African developments, accurately assign the proper hub, country, and coordinates: Kenya (Nairobi: lat -1.2921, lng 36.8219), South Africa (Johannesburg: lat -26.2041, lng 28.0473 or Cape Town), Egypt (Cairo: lat 30.0444, lng 31.2357), Rwanda (Kigali: lat -1.9441, lng 30.0619), Senegal (Dakar: lat 14.7167, lng -17.4677), Côte d\'Ivoire (Abidjan: lat 5.3600, lng -4.0083), Tanzania (Dar es Salaam: lat -6.7924, lng 39.2083), Uganda (Kampala: lat 0.3476, lng 32.5825), Morocco (Casablanca: lat 33.5731, lng -7.5898), Nigeria (Lagos: lat 6.5244, lng 3.3792), Ghana (Accra: lat 5.6037, lng -0.1870). Ensure lat/lng accurately correspond to hubCity and countryNameMatch matches standard English country names.',
       responseMimeType: 'application/json',
       responseSchema: {
         type: Type.ARRAY,
@@ -540,7 +647,8 @@ ${JSON.stringify(promptPayload)}`,
 }
 
 function fallbackEnrichArticles(articles: RawRssArticle[]): IntelligenceItem[] {
-  return articles.map((raw, idx) => {
+  const relevantArticles = articles.filter((a) => isExecutiveRelevant(a.headline, a.snippet));
+  return relevantArticles.map((raw, idx) => {
     const text = `${raw.headline} ${raw.snippet}`.toLowerCase();
 
     // Sector detection
@@ -750,8 +858,7 @@ function fallbackEnrichArticles(articles: RawRssArticle[]): IntelligenceItem[] {
       lng,
       executiveSummary,
       entities: [raw.source, hubCity],
-      technologyTag:
-        sector === 'AI' ? 'Enterprise AI' : sector === 'Banking' ? 'Core Banking' : 'Payment Rails',
+      technologyTag: inferTechnologyTag(text, sector),
       impactWeight: 8.0,
       capitalOrScaleLabel: 'Live Market Signal',
       sentiment: 'Constructive' as Sentiment,
@@ -805,7 +912,10 @@ async function runLiveIngestion(
   }
 
   const cutoff30d = Date.now() - 30 * 24 * 60 * 60 * 1000;
-  const recentArticles = allArticles.filter((a) => new Date(a.publishedAt).getTime() >= cutoff30d);
+  const recentArticles = allArticles.filter((a) => {
+    const pubTime = new Date(a.publishedAt).getTime();
+    return pubTime >= cutoff30d && isExecutiveRelevant(a.headline, a.snippet);
+  });
   const existingKeys = new Set(intelligenceStore.map((item) => normalizeHeadline(item.headline)));
   const unseen = recentArticles.filter((a) => !existingKeys.has(normalizeHeadline(a.headline)));
 
@@ -836,7 +946,11 @@ async function runLiveIngestion(
 
   if (enriched.length > 0) {
     intelligenceStore = [...enriched, ...intelligenceStore]
-      .filter((item) => new Date(item.publishedAt).getTime() >= cutoff30d)
+      .filter(
+        (item) =>
+          new Date(item.publishedAt).getTime() >= cutoff30d &&
+          isExecutiveRelevant(item.headline, item.executiveSummary)
+      )
       .slice(0, 100);
     liveFeedCount += enriched.length;
   }
