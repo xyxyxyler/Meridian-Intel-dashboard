@@ -49,7 +49,7 @@ const DEFAULT_SETTINGS: DashboardSettings = {
   cycleIntervalSec: 12,
   showTicker: true,
   defaultMapMode: 'hotspots',
-  defaultTimeframe: 'all',
+  defaultTimeframe: '30d',
   autoRefreshMin: 15,
 };
 
@@ -65,10 +65,9 @@ function loadInitialSettings(): DashboardSettings {
     const defaultTimeframe: Timeframe =
       parsed.defaultTimeframe === '24h' ||
       parsed.defaultTimeframe === '7d' ||
-      parsed.defaultTimeframe === '30d' ||
-      parsed.defaultTimeframe === 'all'
+      parsed.defaultTimeframe === '30d'
         ? parsed.defaultTimeframe
-        : 'all';
+        : '30d';
     return { ...DEFAULT_SETTINGS, ...parsed, autoRefreshMin, defaultTimeframe };
   } catch {
     return DEFAULT_SETTINGS;
@@ -84,7 +83,6 @@ const EVENT_TYPES: Array<EventType | 'All'> = [
   'Regulation',
 ];
 const TIMEFRAMES: Array<{ label: string; value: Timeframe }> = [
-  { label: 'All Time', value: 'all' },
   { label: 'Live / 24h', value: '24h' },
   { label: '7 Days', value: '7d' },
   { label: '30 Days', value: '30d' },

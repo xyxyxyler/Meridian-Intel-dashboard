@@ -687,13 +687,15 @@ async function runLiveIngestion(
     }
   }
 
+  const cutoff30d = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const recentArticles = allArticles.filter((a) => new Date(a.publishedAt).getTime() >= cutoff30d);
   const existingKeys = new Set(intelligenceStore.map((item) => normalizeHeadline(item.headline)));
-  const unseen = allArticles.filter((a) => !existingKeys.has(normalizeHeadline(a.headline)));
+  const unseen = recentArticles.filter((a) => !existingKeys.has(normalizeHeadline(a.headline)));
 
   const freshCandidates =
     targetRegion && targetRegion !== 'All'
-      ? unseen.slice(0, 6)
-      : selectBalancedContinentalBatch(unseen, 10);
+      ? unseen.slice(0, 12)
+      : selectBalancedContinentalBatch(unseen, 25);
 
   if (freshCandidates.length === 0) {
     lastIngestedAt = new Date().toISOString();
@@ -716,7 +718,9 @@ async function runLiveIngestion(
   }
 
   if (enriched.length > 0) {
-    intelligenceStore = [...enriched, ...intelligenceStore].slice(0, 80);
+    intelligenceStore = [...enriched, ...intelligenceStore]
+      .filter((item) => new Date(item.publishedAt).getTime() >= cutoff30d)
+      .slice(0, 100);
     liveFeedCount += enriched.length;
   }
 
@@ -804,9 +808,10 @@ async function createApp() {
   });
 
   app.get('/api/intelligence', (_req, res) => {
-    const sorted = [...intelligenceStore].sort(
-      (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-    );
+    const cutoff30d = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const sorted = intelligenceStore
+      .filter((item) => new Date(item.publishedAt).getTime() >= cutoff30d)
+      .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
     res.json({
       items: sorted,
       lastIngestedAt,
@@ -816,9 +821,14 @@ async function createApp() {
   });
 
   app.get('/api/intelligence/region/:region', (req, res) => {
+    const cutoff30d = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const regionParam = decodeURIComponent(req.params.region);
     const matching = intelligenceStore
-      .filter((item) => item.region.toLowerCase() === regionParam.toLowerCase())
+      .filter(
+        (item) =>
+          item.region.toLowerCase() === regionParam.toLowerCase() &&
+          new Date(item.publishedAt).getTime() >= cutoff30d
+      )
       .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
     const localSources = rssSources.filter(
       (s) => s.region.toLowerCase() === regionParam.toLowerCase()
@@ -835,9 +845,10 @@ async function createApp() {
     try {
       const { region } = (req.body || {}) as { region?: Region | 'All' };
       const result = await runLiveIngestion(region);
-      const sorted = [...intelligenceStore].sort(
-        (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
-      );
+      const cutoff30d = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const sorted = intelligenceStore
+        .filter((item) => new Date(item.publishedAt).getTime() >= cutoff30d)
+        .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
       res.json({
         items: sorted,
         added: result.added,

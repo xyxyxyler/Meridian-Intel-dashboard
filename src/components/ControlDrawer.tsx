@@ -600,7 +600,6 @@ export function ControlDrawer({
                       }
                       className="px-3 py-1.5 text-xs font-medium bg-[#11161E] border border-slate-800 rounded-lg text-slate-200 focus:outline-none focus:border-amber-500 cursor-pointer"
                     >
-                      <option value="all">All Time</option>
                       <option value="24h">Live / 24h</option>
                       <option value="7d">7 Days</option>
                       <option value="30d">30 Days</option>

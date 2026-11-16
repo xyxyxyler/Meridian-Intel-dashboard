@@ -74,8 +74,7 @@ export function getTimeframeCutoffMs(timeframe: Timeframe): number {
   const now = Date.now();
   if (timeframe === '24h') return now - 24 * 60 * 60 * 1000;
   if (timeframe === '7d') return now - 7 * 24 * 60 * 60 * 1000;
-  if (timeframe === '30d') return now - 30 * 24 * 60 * 60 * 1000;
-  return 0;
+  return now - 30 * 24 * 60 * 60 * 1000;
 }
 
 export function filterIntelligenceItems(
@@ -83,10 +82,13 @@ export function filterIntelligenceItems(
   filters: DashboardFilters
 ): IntelligenceItem[] {
   const cutoff = getTimeframeCutoffMs(filters.timeframe);
+  const maxCutoff30d = Date.now() - 30 * 24 * 60 * 60 * 1000;
   const q = filters.searchQuery.trim().toLowerCase();
 
   return items.filter((item) => {
     const publishedMs = new Date(item.publishedAt).getTime();
+    // Platform invariant: Never show news beyond 30 days
+    if (publishedMs < maxCutoff30d) return false;
     if (publishedMs < cutoff) return false;
     if (filters.sector !== 'All' && item.sector !== filters.sector) return false;
     if (filters.eventType !== 'All' && item.eventType !== filters.eventType) return false;
@@ -266,7 +268,7 @@ export function buildScopeLabel(filters: DashboardFilters): string {
   else if (filters.country) parts.push(filters.country);
   else if (filters.region !== 'All') parts.push(filters.region);
   else parts.push('Global');
-  parts.push(filters.timeframe === 'all' ? 'ALL TIME' : filters.timeframe.toUpperCase());
+  parts.push(filters.timeframe.toUpperCase());
   return parts.join(' · ');
 }
 
