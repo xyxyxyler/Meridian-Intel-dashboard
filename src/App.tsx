@@ -138,6 +138,10 @@ export default function App() {
 
   useEffect(() => {
     loadIntelligence();
+    const interval = setInterval(() => {
+      loadIntelligence();
+    }, 60 * 1000);
+    return () => clearInterval(interval);
   }, [loadIntelligence]);
 
   const handleIngestLiveRss = useCallback(async (targetRegion: Region | 'All' = 'All') => {

@@ -36,7 +36,7 @@ const ai = process.env.GEMINI_API_KEY
   : null;
 
 const rssParser = new Parser({
-  timeout: 4500,
+  timeout: 8000,
   headers: {
     'User-Agent': 'MeridianIntel/1.0 (+Executive Intelligence Aggregator)',
   },
@@ -46,7 +46,7 @@ const rssParser = new Parser({
 });
 
 const BASE_RSS_SOURCES: NewsSourceEndpoint[] = [
-  // North America (Local US & Canada)
+  // North America (Local US & Canada, Major Networks)
   {
     id: 'us-banking-dive',
     name: 'Banking Dive (US)',
@@ -80,6 +80,22 @@ const BASE_RSS_SOURCES: NewsSourceEndpoint[] = [
     defaultSector: 'AI',
   },
   {
+    id: 'cnn-business-markets',
+    name: 'CNN Business & Markets',
+    region: 'North America',
+    scope: 'Global',
+    url: 'https://news.google.com/rss/search?q=site:cnn.com+(business+OR+fintech+OR+banking+OR+tech+OR+AI+OR+markets)&hl=en-US&gl=US&ceid=US:en',
+    defaultSector: 'Banking',
+  },
+  {
+    id: 'cnn-tech-ai',
+    name: 'CNN Technology & AI',
+    region: 'North America',
+    scope: 'Global',
+    url: 'https://news.google.com/rss/search?q=site:cnn.com+(%22artificial+intelligence%22+OR+AI+OR+fintech+OR+semiconductor+OR+Nvidia+OR+OpenAI)&hl=en-US&gl=US&ceid=US:en',
+    defaultSector: 'AI',
+  },
+  {
     id: 'us-gnews-local',
     name: 'US Banking & AI Wire',
     region: 'North America',
@@ -87,7 +103,31 @@ const BASE_RSS_SOURCES: NewsSourceEndpoint[] = [
     url: 'https://news.google.com/rss/search?q=fintech+OR+banking+AI+US&hl=en-US&gl=US&ceid=US:en',
     defaultSector: 'Banking',
   },
-  // Europe
+  // Europe (BBC, Reuters, Sifted & Regional Desks)
+  {
+    id: 'bbc-business-global',
+    name: 'BBC News Business',
+    region: 'Europe',
+    scope: 'Global',
+    url: 'https://feeds.bbci.co.uk/news/business/rss.xml',
+    defaultSector: 'Banking',
+  },
+  {
+    id: 'bbc-technology',
+    name: 'BBC News Technology & AI',
+    region: 'Europe',
+    scope: 'Global',
+    url: 'https://feeds.bbci.co.uk/news/technology/rss.xml',
+    defaultSector: 'AI',
+  },
+  {
+    id: 'reuters-finance-wire',
+    name: 'Reuters Global Banking & AI',
+    region: 'Europe',
+    scope: 'Global',
+    url: 'https://news.google.com/rss/search?q=site:reuters.com+(banking+OR+fintech+OR+%22artificial+intelligence%22+OR+%22central+bank%22)&hl=en-US&gl=US&ceid=US:en',
+    defaultSector: 'Banking',
+  },
   {
     id: 'eu-sifted',
     name: 'Sifted (Europe)',
@@ -130,7 +170,31 @@ const BASE_RSS_SOURCES: NewsSourceEndpoint[] = [
     url: 'https://www.startupdaily.net/feed/',
     defaultSector: 'AI',
   },
-  // Middle East
+  // Middle East (Al Jazeera, Regional Desks & FinTech Portals)
+  {
+    id: 'aljazeera-economy-global',
+    name: 'Al Jazeera Economy & Business',
+    region: 'Middle East',
+    scope: 'Global',
+    url: 'https://news.google.com/rss/search?q=site:aljazeera.com+(economy+OR+banking+OR+fintech+OR+AI+OR+business)&hl=en-US&gl=US&ceid=US:en',
+    defaultSector: 'Banking',
+  },
+  {
+    id: 'aljazeera-tech-ai',
+    name: 'Al Jazeera Technology & AI',
+    region: 'Middle East',
+    scope: 'Global',
+    url: 'https://news.google.com/rss/search?q=site:aljazeera.com+(AI+OR+%22artificial+intelligence%22+OR+technology+OR+fintech)&hl=en-US&gl=US&ceid=US:en',
+    defaultSector: 'AI',
+  },
+  {
+    id: 'aljazeera-direct-rss',
+    name: 'Al Jazeera World News',
+    region: 'Middle East',
+    scope: 'Regional',
+    url: 'https://www.aljazeera.com/xml/rss/all.xml',
+    defaultSector: 'Banking',
+  },
   {
     id: 'mena-fintech-ae',
     name: 'Fintech News Middle East',
@@ -164,7 +228,23 @@ const BASE_RSS_SOURCES: NewsSourceEndpoint[] = [
     url: 'https://news.google.com/rss/search?q=fintech+OR+banking+AI+Brazil+OR+Mexico+OR+Colombia&hl=en-US&gl=US&ceid=US:en',
     defaultSector: 'FinTech',
   },
-  // Africa
+  // Africa (Pan-Africa, BBC Africa, CNN Africa & Regional Hubs)
+  {
+    id: 'bbc-africa-business',
+    name: 'BBC News Africa',
+    region: 'Africa',
+    scope: 'Regional',
+    url: 'https://feeds.bbci.co.uk/news/world/africa/rss.xml',
+    defaultSector: 'Banking',
+  },
+  {
+    id: 'cnn-africa-emerging',
+    name: 'CNN Africa & Emerging Markets',
+    region: 'Africa',
+    scope: 'Regional',
+    url: 'https://news.google.com/rss/search?q=site:cnn.com+(Africa+OR+EMEA)+(fintech+OR+banking+OR+economy+OR+tech)&hl=en-US&gl=US&ceid=US:en',
+    defaultSector: 'FinTech',
+  },
   {
     id: 'africa-techcabal',
     name: 'TechCabal (Pan-Africa)',
@@ -336,6 +416,23 @@ function extractSourceAndCleanHeadline(
 
   cleanHeadline = cleanHeadline.replace(/\s+-\s+.*$/, '').trim();
 
+  // 4. Normalize major publisher names cleanly for brand consistency
+  if (/bbc/i.test(sourcePublisher) || (feedName && /bbc/i.test(feedName))) {
+    sourcePublisher = 'BBC News';
+  } else if (/\bcnn\b/i.test(sourcePublisher) || (feedName && /\bcnn\b/i.test(feedName))) {
+    sourcePublisher = 'CNN';
+  } else if (/al\s*jazeera/i.test(sourcePublisher) || (feedName && /al\s*jazeera/i.test(feedName))) {
+    sourcePublisher = 'Al Jazeera';
+  } else if (/reuters/i.test(sourcePublisher) || (feedName && /reuters/i.test(feedName))) {
+    sourcePublisher = 'Reuters';
+  } else if (/bloomberg/i.test(sourcePublisher)) {
+    sourcePublisher = 'Bloomberg';
+  } else if (/financial times/i.test(sourcePublisher) || /\bft\b/i.test(sourcePublisher)) {
+    sourcePublisher = 'Financial Times';
+  } else if (/wall street journal|\bwsj\b/i.test(sourcePublisher)) {
+    sourcePublisher = 'Wall Street Journal';
+  }
+
   return { cleanHeadline, sourcePublisher: sourcePublisher || 'Institutional Wire' };
 }
 
@@ -472,7 +569,7 @@ async function fetchRssArticles(
   const results = await Promise.allSettled(
     feedsToPoll.map(async (feed) => {
       const parsed = await rssParser.parseURL(feed.url);
-      const items = (parsed.items || []).slice(0, 4).map((entry) => {
+      const items = (parsed.items || []).slice(0, 15).map((entry) => {
         const rawHeadline = (entry.title || '').trim();
         const { cleanHeadline, sourcePublisher } = extractSourceAndCleanHeadline(
           rawHeadline,
@@ -916,13 +1013,25 @@ async function runLiveIngestion(
     const pubTime = new Date(a.publishedAt).getTime();
     return pubTime >= cutoff30d && isExecutiveRelevant(a.headline, a.snippet);
   });
+
+  // Deduplicate within the newly polled batch
+  const seenBatchKeys = new Set<string>();
+  const uniqueRecentArticles: RawRssArticle[] = [];
+  for (const a of recentArticles) {
+    const key = normalizeHeadline(a.headline);
+    if (!seenBatchKeys.has(key)) {
+      seenBatchKeys.add(key);
+      uniqueRecentArticles.push(a);
+    }
+  }
+
   const existingKeys = new Set(intelligenceStore.map((item) => normalizeHeadline(item.headline)));
-  const unseen = recentArticles.filter((a) => !existingKeys.has(normalizeHeadline(a.headline)));
+  const unseen = uniqueRecentArticles.filter((a) => !existingKeys.has(normalizeHeadline(a.headline)));
 
   const freshCandidates =
     targetRegion && targetRegion !== 'All'
-      ? unseen.slice(0, 12)
-      : selectBalancedContinentalBatch(unseen, 25);
+      ? unseen.slice(0, 16)
+      : selectBalancedContinentalBatch(unseen, 35);
 
   if (freshCandidates.length === 0) {
     lastIngestedAt = new Date().toISOString();
@@ -945,13 +1054,21 @@ async function runLiveIngestion(
   }
 
   if (enriched.length > 0) {
-    intelligenceStore = [...enriched, ...intelligenceStore]
-      .filter(
-        (item) =>
-          new Date(item.publishedAt).getTime() >= cutoff30d &&
-          isExecutiveRelevant(item.headline, item.executiveSummary)
-      )
-      .slice(0, 100);
+    const combined = [...enriched, ...intelligenceStore];
+    const seenFinalKeys = new Set<string>();
+    const deduplicatedStore: IntelligenceItem[] = [];
+    for (const item of combined) {
+      const key = normalizeHeadline(item.headline);
+      if (
+        !seenFinalKeys.has(key) &&
+        new Date(item.publishedAt).getTime() >= cutoff30d &&
+        isExecutiveRelevant(item.headline, item.executiveSummary)
+      ) {
+        seenFinalKeys.add(key);
+        deduplicatedStore.push(item);
+      }
+    }
+    intelligenceStore = deduplicatedStore.slice(0, 100);
     liveFeedCount += enriched.length;
   }
 
@@ -1056,6 +1173,15 @@ async function createApp() {
     const isPing = req.query.ping === 'true' || req.query.keepalive === 'true' || isCronOrBot;
 
     if (isPing) {
+      // If last ingested > 8 minutes ago, trigger background ingestion to keep dashboard continually updated
+      const timeSinceIngest = Date.now() - new Date(lastIngestedAt).getTime();
+      if (timeSinceIngest > 8 * 60 * 1000) {
+        console.log('[Ping Trigger] Cron/Keepalive detected and last ingestion was > 8m ago. Starting background sync...');
+        runLiveIngestion().catch((err) => {
+          console.warn('[Ping Trigger] Background ingestion failed:', err instanceof Error ? err.message : err);
+        });
+      }
+
       res.json({
         ok: true,
         status: 'alive',
@@ -1288,21 +1414,19 @@ ${JSON.stringify(contextItems)}`,
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Meridian Intel server listening on http://0.0.0.0:${PORT}`);
-    // Non-blocking background warm RSS check if Gemini key is present
-    if (ai) {
-      runLiveIngestion().catch((err) => {
-        console.warn('Initial background RSS check skipped:', err instanceof Error ? err.message : err);
-      });
+    // Non-blocking initial background RSS check
+    runLiveIngestion().catch((err) => {
+      console.warn('Initial background RSS check skipped:', err instanceof Error ? err.message : err);
+    });
 
-      // Periodic 15-minute background auto-sync
-      const AUTO_SYNC_INTERVAL_MS = 15 * 60 * 1000;
-      setInterval(() => {
-        console.log('[Auto-Sync] Running periodic 15-minute intelligence sync across RSS and GNews...');
-        runLiveIngestion().catch((err) => {
-          console.warn('[Auto-Sync] Background sync error:', err instanceof Error ? err.message : err);
-        });
-      }, AUTO_SYNC_INTERVAL_MS);
-    }
+    // Periodic 10-minute background auto-sync across all global desks & wire endpoints
+    const AUTO_SYNC_INTERVAL_MS = 10 * 60 * 1000;
+    setInterval(() => {
+      console.log('[Auto-Sync] Running periodic 10-minute intelligence sync across RSS, major networks & GNews...');
+      runLiveIngestion().catch((err) => {
+        console.warn('[Auto-Sync] Background sync error:', err instanceof Error ? err.message : err);
+      });
+    }, AUTO_SYNC_INTERVAL_MS);
   });
 }
 
